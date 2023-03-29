@@ -1,0 +1,8 @@
+ansible-core
+jmespath
+molecule
+molecule-plugins[docker]
+netaddr
+pytest
+pytest-forked
+pytest-xdist
