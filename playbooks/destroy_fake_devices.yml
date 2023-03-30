@@ -19,6 +19,8 @@
   hosts: "{{ ceph_osd_group | default('cephs') }}"
   ignore_errors: true
   become: true
+  vars:
+    ceph_osds: ["osd0", "osd1", "osd2"]
   tasks:
     - name: Shutdown all OSDs
       ansible.builtin.service:
@@ -26,24 +28,26 @@
         state: stopped
 
     - name: Get list of all loopback devices
-      ansible.builtin.shell: losetup -J
+      ansible.builtin.command: losetup -J
       changed_when: false
       register: _losetup_l
 
     - name: Delete a logical volume for each loop device
       community.general.lvol:
-        vg: ceph-{{ inventory_hostname_short }}-{{ item['back-file'].split('/')[-1].split('.')[0] }}
+        vg: ceph-{{ inventory_hostname_short }}-{{ item }}
         lv: data
         force: true
         state: absent
-      loop: "{{ _losetup_l.stdout | default('{}', true) | from_json | json_query('loopdevices[?starts_with(\"back-file\", `/opt/osd`)].{name: name, \"back-file\": \"back-file\"}') | default([], true) }}"
+      loop: "{{ ceph_osds }}"
 
     - name: Delete a volume group for each loop device
       community.general.lvg:
-        vg: ceph-{{ inventory_hostname_short }}-{{ item['back-file'].split('/')[-1].split('.')[0] }}
+        vg: ceph-{{ inventory_hostname_short }}-{{ item }}
         state: absent
-      loop: "{{ _losetup_l.stdout | default('{}', true) | from_json | json_query('loopdevices[?starts_with(\"back-file\", `/opt/osd`)].{name: name, \"back-file\": \"back-file\"}') | default([], true) }}"
+      loop: "{{ ceph_osds }}"
 
-    - name: Stop loopback devices for unmapped images
-      ansible.builtin.command: losetup -d {{ item.name }}
-      loop: "{{ _losetup_l.stdout | default('{}', true) | from_json | json_query('loopdevices[?starts_with(\"back-file\", `/opt/osd`)].{name: name, \"back-file\": \"back-file\"}') | default([], true) }}"
+    - name: Stop loopback devices for all images
+      vexxhost.ceph.loop_device:
+        path: /opt/{{ inventory_hostname_short }}-{{ item }}.img
+        state: absent
+      loop: "{{ ceph_osds }}"
