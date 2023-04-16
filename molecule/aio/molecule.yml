@@ -54,8 +54,8 @@ provisioner:
       controllers:
       cephs:
         ceph_osd_devices:
-          - /dev/ceph-instance-osd0/data
-          - /dev/ceph-instance-osd1/data
-          - /dev/ceph-instance-osd2/data
+          - "/dev/ceph-{{ inventory_hostname_short }}-osd0/data"
+          - "/dev/ceph-{{ inventory_hostname_short }}-osd1/data"
+          - "/dev/ceph-{{ inventory_hostname_short }}-osd2/data"
 verifier:
   name: ansible

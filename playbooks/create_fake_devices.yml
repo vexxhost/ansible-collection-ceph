@@ -53,41 +53,45 @@
       ansible.builtin.copy:
         content: "{{ _lvmconfig.stdout }}"
         dest: /etc/lvm/lvm.conf
-
-    - name: Create devices for Ceph
-      ansible.builtin.command: truncate -s 1024G /opt/{{ item }}.img
-      args:
-        creates: /opt/{{ item }}.img
-      with_items: "{{ ceph_osds }}"
+        mode: "0644"
 
     - name: Get list of all loopback devices
-      ansible.builtin.shell: losetup -J
+      ansible.builtin.command: losetup -a
       changed_when: false
-      register: _losetup_l
+      register: _loopback_devices
 
-    - name: Start loopback devices for unmapped images
-      ansible.builtin.command: losetup -fP /opt/{{ item }}.img
+    - name: Fail if there is any existing loopback devices
+      ansible.builtin.fail:
+        msg: There are existing loopback devices, please ensure they are removed
+      when: _loopback_devices.stdout != ""
+
+    - name: Create devices for Ceph
+      ansible.builtin.command: truncate -s 1024G /opt/{{ inventory_hostname_short }}-{{ item }}.img
+      args:
+        creates: /opt/{{ inventory_hostname_short }}-{{ item }}.img
       with_items: "{{ ceph_osds }}"
-      when:
-        - _losetup_l.stdout | default('{}', true) | from_json | json_query('loopdevices[?"back-file"==`/opt/' + item + '.img`]."back-file"') == None
 
     - name: Set permissions on loopback devices
       ansible.builtin.file:
-        path: /opt/{{ item }}.img
-        mode: 0777
+        path: /opt/{{ inventory_hostname_short }}-{{ item }}.img
+        mode: "0777"
       with_items: "{{ ceph_osds }}"
 
-    - name: Get list of all loopback devices
-      ansible.builtin.shell: losetup -J
-      changed_when: false
-      register: _losetup_l
+    - name: Start loop devices
+      vexxhost.ceph.loop_device:
+        state: present
+        path: /opt/{{ inventory_hostname_short }}-{{ item }}.img
+      register: _loop_devices
+      with_items: "{{ ceph_osds }}"
 
     - name: Create a volume group for each loop device
       community.general.lvg:
-        vg: ceph-{{ inventory_hostname_short }}-{{ item['back-file'].split('/')[-1].split('.')[0] }}
-        pvs: "{{ item.name }}"
-      loop: "{{ _losetup_l.stdout | from_json | json_query('loopdevices[?starts_with(\"back-file\", `/opt/osd`)].{name: name, \"back-file\": \"back-file\"}') }}"
+        vg: ceph-{{ inventory_hostname_short }}-{{ item.item }}
+        pvs: "{{ item.loopdev.name }}"
       register: _lvg
+      loop: "{{ _loop_devices.results }}"
+      loop_control:
+        label: "{{ item.item }}"
 
     - name: Create a logical volume for each loop device
       community.general.lvol:

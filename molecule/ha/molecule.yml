@@ -18,7 +18,7 @@ driver:
   name: docker
 platforms:
   - &instance_config
-    name: instance-1
+    name: mon1
     image: geerlingguy/docker-${MOLECULE_DISTRO:-ubuntu2004}-ansible:latest
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     privileged: true
@@ -29,15 +29,28 @@ platforms:
     security_opts:
       - apparmor=unconfined
     volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - /dev:/dev
       - /lib/modules:/lib/modules:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
       - /usr/src:/usr/src:ro
     groups:
       - controllers
   - <<: *instance_config
-    name: instance-2
+    name: mon2
   - <<: *instance_config
-    name: instance-3
+    name: mon3
+  - <<: *instance_config
+    name: osd1
+    groups:
+      - cephs
+  - <<: *instance_config
+    name: osd2
+    groups:
+      - cephs
+  - <<: *instance_config
+    name: osd3
+    groups:
+      - cephs
 provisioner:
   name: ansible
   config_options:
@@ -46,11 +59,16 @@ provisioner:
   inventory:
     group_vars:
       all:
-        kubernetes_version: ${KUBERNETES_VERSION}
+        ceph_fsid: ${MOLECULE_CEPH_FSID:-"1dff0e0f-3c44-48da-81cd-4f3c6e8722b2"}
+        ceph_conf_overrides:
+          - section: mon
+            option: auth allow insecure global id reclaim
+            value: false
       controllers:
-        keepalived_interface: "{{ ansible_default_ipv4.interface }}"
-        keepalived_vip: 172.17.0.100
-        keepalived_vrid: 42
-        kubernetes_hostname: k8s
+      cephs:
+        ceph_osd_devices:
+          - "/dev/ceph-{{ inventory_hostname_short }}-osd0/data"
+          - "/dev/ceph-{{ inventory_hostname_short }}-osd1/data"
+          - "/dev/ceph-{{ inventory_hostname_short }}-osd2/data"
 verifier:
   name: ansible

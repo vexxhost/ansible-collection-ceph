@@ -22,11 +22,10 @@
     url: "{{ ceph_repository_apt_key }}"
     state: present
 
-- name: Configure version pinning
-  ansible.builtin.template:
-    src: apt-preferences.j2
-    dest: /etc/apt/preferences.d/ceph
-    mode: "0644"
+- name: Remove APT preferences
+  ansible.builtin.file:
+    path: /etc/apt/preferences.d/ceph
+    state: absent
 
 - name: Add apt repository
   ansible.builtin.apt_repository:
