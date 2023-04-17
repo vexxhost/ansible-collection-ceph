@@ -16,7 +16,7 @@
 ceph_mon_group: "{{ ceph_control_plane_group | default('controllers') }}"
 
 # Configuration optinos for Ceph
-ceph_mon_conf_overrides: "{{ ceph_conf_overrides | default({}) }}"
+ceph_mon_conf_overrides: "{{ ceph_conf_overrides | default([]) }}"
 
 # Filesystem ID
 ceph_mon_fsid: "{{ ceph_fsid }}"
