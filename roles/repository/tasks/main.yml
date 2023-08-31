@@ -12,6 +12,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+- name: Check if ceph_repository_version minimal 16.2
+  ansible.builtin.fail:
+    msg: ceph_repository_version older then 16.2 or has the incorrect format.
+  when: ceph_repository_version is not ansible.builtin.version("16.2", '>=')
+
 - name: Install packages
   ansible.builtin.apt:
     name: ["gnupg"]
