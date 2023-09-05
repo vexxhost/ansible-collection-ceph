@@ -8,7 +8,7 @@ description: Ansible collection for deploying Ceph clusters
 license:
   - GPL-3.0-or-later
 dependencies:
-  community.general: 4.5.0
+  community.general: 7.3.0
   ansible.utils: 2.9.0
 tags:
   - application
