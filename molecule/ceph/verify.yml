@@ -20,6 +20,10 @@
       ansible.builtin.command: ceph health
       register: _ceph_health
 
+    - name: Print cluster health status
+      ansible.builtin.debug:
+        var: _ceph_health
+
     - name: Assert that the cluster status is healthy
       ansible.builtin.assert:
         that:

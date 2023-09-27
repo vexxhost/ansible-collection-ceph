@@ -44,6 +44,7 @@ provisioner:
     group_vars:
       all:
         ceph_fsid: ${MOLECULE_CEPH_FSID:-"1dff0e0f-3c44-48da-81cd-4f3c6e8722b2"}
+        ceph_version: ${MOLECULE_CEPH_VERSION:-"16.2.9"}
         ceph_conf_overrides:
           - section: global
             option: osd crush chooseleaf type
@@ -51,6 +52,9 @@ provisioner:
           - section: mon
             option: auth allow insecure global id reclaim
             value: false
+          - section: mon
+            option: mon data avail warn
+            value: 10
       controllers:
       cephs:
         ceph_osd_devices:

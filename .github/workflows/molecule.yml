@@ -26,6 +26,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        version:
+          - 16.2.9
+          - 17.2.6
         scenario:
           - aio
           - ha
@@ -57,4 +60,5 @@ jobs:
       - name: Run Molecule
         run: molecule test -s ${{ matrix.scenario }}
         env:
+          MOLECULE_CEPH_VERSION: ${{ matrix.version }}
           MOLECULE_DISTRO: ${{ matrix.distro }}
