@@ -52,6 +52,9 @@ provisioner:
           - section: mon
             option: auth allow insecure global id reclaim
             value: false
+          - section: mon
+            option: mon data avail warn
+            value: 10
       controllers:
       cephs:
         ceph_osd_devices:
