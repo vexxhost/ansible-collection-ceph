@@ -24,7 +24,7 @@
 
 - name: Add apt key
   ansible.builtin.apt_key:
-    url: "{{ ceph_repository_apt_key }}"
+    data: "{{ lookup('ansible.builtin.file', 'release.asc') }}"
     state: present
 
 - name: Remove APT preferences
