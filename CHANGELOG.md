@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.2.0](https://github.com/vexxhost/ansible-collection-ceph/compare/v2.1.0...v2.2.0) (2023-10-18)
+
+
+### Features
+
+* add support for installing quincy ([#7](https://github.com/vexxhost/ansible-collection-ceph/issues/7)) ([6ce7ba8](https://github.com/vexxhost/ansible-collection-ceph/commit/6ce7ba8dc3ba0d7f13a855639e361cb0172c5589))
+
+
+### Bug Fixes
+
+* add minimum deps for community.general ([91cfd20](https://github.com/vexxhost/ansible-collection-ceph/commit/91cfd208de6e68e4b45d4ec9de88b5aad8f9976b))
+* bundle release.asc ([#10](https://github.com/vexxhost/ansible-collection-ceph/issues/10)) ([b8d399b](https://github.com/vexxhost/ansible-collection-ceph/commit/b8d399b1c6da7e22fa8e95b0514c334891a1cf0a))
+
 ## [2.1.0](https://github.com/vexxhost/ansible-collection-ceph/compare/v2.0.1...v2.1.0) (2023-09-05)
 
 
