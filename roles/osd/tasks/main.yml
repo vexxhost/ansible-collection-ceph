@@ -29,6 +29,7 @@
   ansible.builtin.command: ceph mon dump -f json
   changed_when: false
   register: _ceph_mon_dump
+  check_mode: false
 
 - name: Generate fact with list of Ceph monitors
   run_once: true
@@ -58,6 +59,7 @@
     state: info
     output_format: plain
   register: _ceph_bootstrap_osd_keyring
+  check_mode: false
 
 - name: Install bootstrap-osd keyring
   ansible.builtin.copy:
@@ -73,6 +75,7 @@
   changed_when: false
   ansible.builtin.command: /usr/sbin/ceph-volume lvm list {{ item }}
   loop: "{{ ceph_osd_devices }}"
+  check_mode: false
 
 - name: Create osds for volumes which are not setup
   changed_when: true
