@@ -12,8 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# Ceph version to pin package manager to
-ceph_repository_version: "{{ ceph_version | default('16.2.9') }}"
+# Ceph release name to pin package manager to. Pacific and Quincy are supported.
+ceph_release_name: "pacific"
 
 # Ceph APT repository URL
-ceph_repository_url: https://download.ceph.com/debian-{{ ceph_repository_version }}/
+ceph_repository_url: https://download.ceph.com/debian-{{ ceph_release_name }}/

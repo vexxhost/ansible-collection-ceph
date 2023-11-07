@@ -27,15 +27,14 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - 16.2.9
-          - 17.2.6
+          - pacific
+          - quincy
         scenario:
           - aio
           - ha
         distro:
           - ubuntu2004
-          # NOTE(mnaser): There are no Jammy packages for Ceph yet.
-          # - ubuntu2204
+          - ubuntu2204
     steps:
       - name: Checkout project
         uses: actions/checkout@v3

@@ -60,7 +60,7 @@ provisioner:
     group_vars:
       all:
         ceph_fsid: ${MOLECULE_CEPH_FSID:-"1dff0e0f-3c44-48da-81cd-4f3c6e8722b2"}
-        ceph_version: ${MOLECULE_CEPH_VERSION:-"16.2.9"}
+        ceph_release_name: ${MOLECULE_CEPH_VERSION:-"pacific"}
         ceph_conf_overrides:
           - section: mon
             option: auth allow insecure global id reclaim
