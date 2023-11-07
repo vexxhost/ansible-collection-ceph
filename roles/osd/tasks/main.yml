@@ -21,7 +21,7 @@
   ansible.builtin.apt:
     name: ["ceph-volume"]
     install_recommends: false
-  when: ceph_repository_version is ansible.builtin.version("17.2", '>=')
+  when: ceph_release_name in ["quincy"]
 
 - name: Collect "ceph mon dump" output from a monitor
   delegate_to: "{{ groups[ceph_osd_mons_group][0] }}"
