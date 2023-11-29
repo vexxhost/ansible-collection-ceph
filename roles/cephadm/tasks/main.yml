@@ -1,4 +1,4 @@
-# Copyright (c) 2022 VEXXHOST, Inc.
+# Copyright (c) 2023 VEXXHOST, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -14,7 +14,7 @@
 
 - name: Install packages
   ansible.builtin.apt:
-    name: ["openssh-server"]
+    name: ["openssh-server", "cephadm", "ceph-common"]
     install_recommends: false
 
 - name: Enable sshd Root Login
@@ -36,12 +36,27 @@
     name: docker
     state: started
 
+- name: Bootstrap cluster
+  ansible.builtin.include_tasks: bootstrap-ceph.yml
+  when:
+    - inventory_hostname == groups[ceph_mon_group][0]
+    # (ricolin)TODO: need to check if cluster already exists before bootstrap
+
+- name: Add _admin label to host
+  ansible.builtin.command:
+    cmd: ceph orch label add "{{ inventory_hostname_short }}" _admin
+  when:
+    # bootstrap host will auto-apply this label
+    - inventory_hostname != groups[ceph_mon_group][0]
+
 - name: Set authorized key
   ansible.posix.authorized_key:
     user: root
     key: "{{ ceph_ssh_pub_key }}"
     state: present
 
-- name: Add osd host to ceph cluster
+- name: Add rest monitor hosts to ceph cluster
   ansible.builtin.command:
-    cmd: ceph orch host add "{{ inventory_hostname_short }} {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}" --labels=osd
+    cmd: ceph orch host add "{{ inventory_hostname_short }} {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
+  when:
+    - inventory_hostname != groups[ceph_mon_group][0]
