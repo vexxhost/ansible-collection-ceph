@@ -13,3 +13,5 @@
 # under the License.
 
 - ansible.builtin.import_playbook: vexxhost.ceph.site
+  vars:
+    ceph_public_network: 172.17.0.0/24
