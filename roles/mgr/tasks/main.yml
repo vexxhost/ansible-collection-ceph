@@ -14,7 +14,7 @@
 
 - name: Add manager label to host
   ansible.builtin.command:
-    cmd: ceph orch label add "{{ inventory_hostname_short }}" mgr
+    cmd: ceph orch host label add "{{ inventory_hostname_short }}" mgr
   changed_when: false
 
 - name: Add manager to cluster

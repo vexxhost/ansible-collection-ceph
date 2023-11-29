@@ -50,7 +50,7 @@
 
 - name: Add _admin label to host
   ansible.builtin.command:
-    cmd: ceph orch label add "{{ inventory_hostname_short }}" _admin
+    cmd: ceph orch host label add "{{ inventory_hostname_short }}" _admin
   changed_when: false
   when:
     # bootstrap host will auto-apply this label

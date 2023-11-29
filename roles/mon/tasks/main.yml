@@ -14,7 +14,7 @@
 
 - name: Add monitor label to host
   ansible.builtin.command:
-    cmd: ceph orch label add "{{ inventory_hostname_short }}" mon
+    cmd: ceph orch host label add "{{ inventory_hostname_short }}" mon
   changed_when: false
 
 - name: Add monitor to cluster
