@@ -61,6 +61,8 @@
     user: root
     key: "{{ ceph_ssh_pub_key }}"
     state: present
+  when:
+    - ceph_ssh_pub_key is defined
 
 - name: Add rest monitor hosts to ceph cluster
   ansible.builtin.command:

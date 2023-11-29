@@ -41,11 +41,13 @@
     user: root
     key: "{{ ceph_ssh_pub_key }}"
     state: present
+  when:
+    - ceph_ssh_pub_key is defined
 
 - name: Add osd host to ceph cluster
   ansible.builtin.command:
-    ceph orch host add "{{ inventory_hostname_short }} \
-    {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}" --labels=osd  # yamllint disable-line rule:line-length
+    ceph orch host add "{{ inventory_hostname_short }}" \
+    "{{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}" --labels=osd  # yamllint disable-line rule:line-length
   changed_when: false
 
 - name: Apply osd spec file
