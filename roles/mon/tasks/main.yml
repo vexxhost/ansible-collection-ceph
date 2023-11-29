@@ -15,6 +15,7 @@
 - name: Add monitor label to host
   ansible.builtin.command:
     cmd: ceph orch label add "{{ inventory_hostname_short }}" mon
+  changed_when: false
 
 - name: Add monitor to cluster
   ansible.builtin.command:
@@ -23,3 +24,4 @@
       {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
   when:
     - inventory_hostname != groups[ceph_mon_group][0]
+  changed_when: false

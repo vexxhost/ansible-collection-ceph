@@ -18,7 +18,7 @@
     install_recommends: false
 
 - name: Enable sshd Root Login
-  lineinfile:
+  ansible.builtin.lineinfile:
     dest: /etc/ssh/sshd_config
     regexp: '^\#?\s?PermitRootLogin.*$'
     line: "    PermitRootLogin yes"
@@ -39,6 +39,7 @@
 - name: Check ceph exists
   ansible.builtin.command: ceph status
   ignore_errors: true
+  changed_when: false
   register: ceph_status
 
 - name: Bootstrap cluster
@@ -50,6 +51,7 @@
 - name: Add _admin label to host
   ansible.builtin.command:
     cmd: ceph orch label add "{{ inventory_hostname_short }}" _admin
+  changed_when: false
   when:
     # bootstrap host will auto-apply this label
     - inventory_hostname != groups[ceph_mon_group][0]
@@ -65,3 +67,4 @@
     cmd: ceph orch host add "{{ inventory_hostname_short }} {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
   when:
     - inventory_hostname != groups[ceph_mon_group][0]
+  changed_when: false

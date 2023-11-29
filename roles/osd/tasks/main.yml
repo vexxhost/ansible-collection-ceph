@@ -18,7 +18,7 @@
     install_recommends: false
 
 - name: Enable sshd Root Login
-  lineinfile:
+  ansible.builtin.lineinfile:
     dest: /etc/ssh/sshd_config
     regexp: '^\#?\s?PermitRootLogin.*$'
     line: "    PermitRootLogin yes"
@@ -44,16 +44,21 @@
 
 - name: Add osd host to ceph cluster
   ansible.builtin.command:
-    cmd: ceph orch host add "{{ inventory_hostname_short }} {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}" --labels=osd
+    ceph orch host add "{{ inventory_hostname_short }} \
+    {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}" --labels=osd  # yamllint disable-line rule:line-length
+  changed_when: false
 
 - name: Apply osd spec file
   ansible.builtin.command:
     cmd: ceph orch apply -i {{ ceph_osd_spec_file }}
   when:
     - ceph_osd_spec_file is defined
+  changed_when: false
 
 - name: Apply osd spec file with default spec
   run_once: true
+  when:
+    - ceph_osd_spec_file is not defined
   block:
     - name: Generate temporary file for osd spec
       ansible.builtin.tempfile:
@@ -61,7 +66,7 @@
         prefix: ceph_osd_spec
       register: _ceph_osd_default_spec
 
-    - name: write osd spec file
+    - name: Write osd spec file
       become: true
       ansible.builtin.template:
         src: osd_spec.j2
@@ -71,11 +76,10 @@
     - name: Apply osd spec file
       ansible.builtin.command:
         cmd: ceph orch apply -i {{ _ceph_osd_default_spec.path }}
+      changed_when: false
 
     - name: Remove the temporary config file
       ansible.builtin.file:
         path: "{{ _ceph_osd_default_spec.path }}"
         state: absent
       when: _ceph_osd_default_spec.path is defined
-  when:
-    - ceph_osd_spec_file is not defined

@@ -49,15 +49,17 @@
     mode: "0640"
   loop: "{{ ceph_mon_conf_overrides }}"
 
-- name: bootstrap cluster
+- name: Run Bootstrap coomand
   ansible.builtin.command:
     cmd: cephadm bootstrap --mon-ip {{ ceph_mon_ip_address }} --config {{ _ceph_cfg_tempfile.path }} --allow-overwrite
+  changed_when: false
 
 # TODO(ricolin): should validate on cluster bootstrap
 #
 - name: Add mon and mgr label to bootstrap host
   ansible.builtin.command:
     cmd: ceph orch label add "{{ inventory_hostname_short }}" mon, mgr
+  changed_when: false
 
 - name: Load ssh pub key
   ansible.builtin.slurp:
