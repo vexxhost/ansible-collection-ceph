@@ -45,3 +45,37 @@
 - name: Add osd host to ceph cluster
   ansible.builtin.command:
     cmd: ceph orch host add "{{ inventory_hostname_short }} {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}" --labels=osd
+
+- name: Apply osd spec file
+  ansible.builtin.command:
+    cmd: ceph orch apply -i {{ ceph_osd_spec_file }}
+  when:
+    - ceph_osd_spec_file is defined
+
+- name: Apply osd spec file with default spec
+  run_once: true
+  block:
+    - name: Generate temporary file for osd spec
+      ansible.builtin.tempfile:
+        state: file
+        prefix: ceph_osd_spec
+      register: _ceph_osd_default_spec
+
+    - name: write osd spec file
+      become: true
+      ansible.builtin.template:
+        src: osd_spec.j2
+        dest: "{{ _ceph_osd_default_spec.path }}"
+        mode: '0640'
+
+    - name: Apply osd spec file
+      ansible.builtin.command:
+        cmd: ceph orch apply -i {{ _ceph_osd_default_spec.path }}
+
+    - name: Remove the temporary config file
+      ansible.builtin.file:
+        path: "{{ _ceph_osd_default_spec.path }}"
+        state: absent
+      when: _ceph_osd_default_spec.path is defined
+  when:
+    - ceph_osd_spec_file is not defined

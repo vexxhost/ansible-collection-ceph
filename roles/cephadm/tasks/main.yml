@@ -36,11 +36,16 @@
     name: docker
     state: started
 
+- name: Check ceph exists
+  ansible.builtin.command: ceph status
+  ignore_errors: true
+  register: ceph_status
+
 - name: Bootstrap cluster
   ansible.builtin.include_tasks: bootstrap-ceph.yml
   when:
     - inventory_hostname == groups[ceph_mon_group][0]
-    # (ricolin)TODO: need to check if cluster already exists before bootstrap
+    - ceph_status.rc != 0 and not adopt_exists
 
 - name: Add _admin label to host
   ansible.builtin.command:

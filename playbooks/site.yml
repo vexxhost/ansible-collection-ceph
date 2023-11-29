@@ -19,22 +19,17 @@
     - role: cephadm
       tags:
         - cephadm
+    - role: mon
+      tags:
+        - ceph-mon
+    - role: mgr
+      tags:
+        - ceph-mgr
 
-#- name: Deploy Ceph monitors & managers
-#  hosts: "{{ ceph_control_plane_group | default('controllers') }}"
-#  become: true
-#  roles:
-#    - role: mon
-#      tags:
-#        - ceph-mon
-#    - role: mgr
-#      tags:
-#        - ceph-mgr
-#
-#- name: Deploy Ceph OSDs
-#  hosts: "{{ ceph_osd_group | default('cephs') }}"
-#  become: true
-#  roles:
-#    - role: osd
-#      tags:
-#        - ceph-osd
+- name: Deploy Ceph OSDs
+  hosts: "{{ ceph_osd_group | default('cephs') }}"
+  become: true
+  roles:
+    - role: osd
+      tags:
+        - ceph-osd

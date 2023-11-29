@@ -1,0 +1,10 @@
+ceph_osd_default_specs:
+  service_type: osd
+  service_id: "default_drive_group-{{ inventory_hostname_short }}"
+  placement:
+    label: osd
+    hosts:
+      - "{{ inventory_hostname_short }}"
+  spec:
+    data_devices:
+      all: true
