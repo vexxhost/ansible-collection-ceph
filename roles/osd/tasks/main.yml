@@ -67,6 +67,7 @@
         state: file
         prefix: ceph_osd_spec
       register: _ceph_osd_default_spec
+      changed_when: false
 
     - name: Write osd spec file
       become: true
@@ -74,6 +75,7 @@
         src: osd_spec.j2
         dest: "{{ _ceph_osd_default_spec.path }}"
         mode: '0640'
+      changed_when: false
 
     - name: Apply osd spec file
       ansible.builtin.command:
@@ -85,3 +87,4 @@
         path: "{{ _ceph_osd_default_spec.path }}"
         state: absent
       when: _ceph_osd_default_spec.path is defined
+      changed_when: false
