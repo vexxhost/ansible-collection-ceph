@@ -52,7 +52,16 @@
     cmd: cephadm bootstrap --mon-ip {{ ceph_mon_ip_address }} --config {{ _ceph_cfg_tempfile.path }} --allow-overwrite
   changed_when: false
 
-# TODO(ricolin): should validate on cluster bootstrap
+- name: Validate bootstrap
+  ansible.builtin.command: ceph orch status
+  register: bootstrap_status
+  until: >
+    'Available: Yes' in bootstrap_status.stdout and
+    'Backend: cephadm' in bootstrap_status.stdout
+  retries: 120
+  delay: 5
+  changed_when: false
+  failed_when: bootstrap_status.rc > 1
 
 - name: Load ssh pub key
   ansible.builtin.slurp:
@@ -68,3 +77,26 @@
     path: "{{ _ceph_cfg_tempfile.path }}"
     state: absent
   when: _ceph_cfg_tempfile.path is defined
+
+- name: Add _admin label to host
+  ansible.builtin.command:
+    cmd: ceph orch host label add "{{ inventory_hostname_short }}" _admin
+  changed_when: false
+  when:
+    # bootstrap host will auto-apply this label
+    - inventory_hostname != groups[ceph_mon_group][0]
+
+- name: Set authorized key
+  ansible.posix.authorized_key:
+    user: root
+    key: "{{ ceph_ssh_pub_key }}"
+    state: present
+  when:
+    - ceph_ssh_pub_key is defined
+
+- name: Add rest monitor hosts to ceph cluster
+  ansible.builtin.command:
+    cmd: ceph orch host add "{{ inventory_hostname_short }} {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
+  when:
+    - inventory_hostname != groups[ceph_mon_group][0]
+  changed_when: false

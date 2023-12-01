@@ -25,4 +25,9 @@ ceph_mon_fsid: "{{ ceph_fsid }}"
 ceph_mon_public_network: "{{ ceph_public_network | default('0.0.0.0/0') }}"
 ceph_mon_cluster_network: "{{ ceph_cluster_network | default(ceph_mon_public_network) }}"
 
-adopt_exists: false
+# Make sure we plan to adopt exist cluster
+adopt_exists: true
+
+# This only required when /etc/ceph/ceph.conf are different across hosts.
+adopt_config_seperatly: false
+adopt_image: quay.io/ceph/ceph@sha256:599d706c76d7c3379f61c477b5a61a568bf5b5c6863e0f905dc88d971f129a9b  # ceph v16.2.14

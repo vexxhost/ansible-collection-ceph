@@ -14,7 +14,27 @@
 
 - name: Install packages
   ansible.builtin.apt:
-    name: ["openssh-server", "cephadm", "ceph-common"]
+    name: ["ceph-common"]
+    install_recommends: false
+
+- name: Check Ceph cluster status
+  run_once: true
+  block:
+    - name: Check ceph exists
+      ansible.builtin.command: ceph status
+      ignore_errors: true
+      changed_when: false
+      register: ceph_status
+
+    - name: Fail when custer exists but no plan to adopt it
+      ansible.builtin.fail:
+        msg: Existing cluster detected when adopt_exists is false.
+      when:
+        - ceph_status.rc == 0 and not adopt_exists
+
+- name: Install packages
+  ansible.builtin.apt:
+    name: ["openssh-server", "cephadm"]
     install_recommends: false
 
 - name: Enable sshd Root Login
@@ -36,37 +56,13 @@
     name: docker
     state: started
 
-- name: Check ceph exists
-  ansible.builtin.command: ceph status
-  ignore_errors: true
-  changed_when: false
-  register: ceph_status
-
 - name: Bootstrap cluster
   ansible.builtin.include_tasks: bootstrap-ceph.yml
   when:
+    - ceph_status.rc != 0
     - inventory_hostname == groups[ceph_mon_group][0]
-    - ceph_status.rc != 0 and not adopt_exists
 
-- name: Add _admin label to host
-  ansible.builtin.command:
-    cmd: ceph orch host label add "{{ inventory_hostname_short }}" _admin
-  changed_when: false
+- name: Adopt exists cluster
+  ansible.builtin.include_tasks: adoption.yml
   when:
-    # bootstrap host will auto-apply this label
-    - inventory_hostname != groups[ceph_mon_group][0]
-
-- name: Set authorized key
-  ansible.posix.authorized_key:
-    user: root
-    key: "{{ ceph_ssh_pub_key }}"
-    state: present
-  when:
-    - ceph_ssh_pub_key is defined
-
-- name: Add rest monitor hosts to ceph cluster
-  ansible.builtin.command:
-    cmd: ceph orch host add "{{ inventory_hostname_short }} {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
-  when:
-    - inventory_hostname != groups[ceph_mon_group][0]
-  changed_when: false
+    - ceph_status.rc == 0 and adopt_exists
