@@ -14,7 +14,7 @@
 
 - name: Install packages
   ansible.builtin.apt:
-    name: ["openssh-server"]
+    name: ["openssh-server", "ceph-common"]
     install_recommends: false
 
 - name: Enable sshd Root Login
