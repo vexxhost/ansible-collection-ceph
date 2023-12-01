@@ -33,8 +33,6 @@
   loop:
     - option: fsid
       value: "{{ ceph_mon_fsid }}"
-    - option: mon_host
-      value: "{{ groups[ceph_mon_group] | map('extract', hostvars, ['ceph_mon_ip_address']) | join(',') }}"
     - option: public_network
       value: "{{ ceph_mon_public_network }}"
     - option: cluster_network
