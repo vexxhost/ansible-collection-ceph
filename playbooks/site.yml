@@ -16,9 +16,6 @@
   hosts: "{{ ceph_control_plane_group | default('controllers') }}"
   become: true
   roles:
-    - role: cephadm
-      tags:
-        - cephadm
     - role: mon
       tags:
         - ceph-mon

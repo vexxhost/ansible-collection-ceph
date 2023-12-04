@@ -12,7 +12,5 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# Network definitions
-ceph_mon_public_network: "{{ ceph_public_network | default('0.0.0.0/0') }}"
-
-adopt_exists: false
+# Inventory group for Ceph monitors
+ceph_osd_mons_group: "{{ ceph_control_plane_group | default('controllers') }}"

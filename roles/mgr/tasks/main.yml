@@ -12,12 +12,17 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-- name: Bootstrap new manager
-  ansible.builtin.include_tasks: bootstrap.yml
-  when:
-    - not ceph_adoption
+- name: Install Ceph host
+  ansible.builtin.include_role:
+    name: vexxhost.ceph.cephadm_host
+  vars:
+    cephadm_host_admin_host: "{{ inventory_hostname }}"
+    cephadm_host_labels:
+      - _admin
+      - mgr
 
-- name: Adopt exists manager
-  ansible.builtin.include_tasks: adoption.yml
-  when:
-    - ceph_adoption
+- name: Configure "mgr" label for managers
+  changed_when: false
+  run_once: true
+  ansible.builtin.command:
+    cmd: cephadm shell -- ceph orch apply mgr --placement="label:mgr"

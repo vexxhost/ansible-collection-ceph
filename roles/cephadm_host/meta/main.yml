@@ -12,12 +12,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-- name: Validate monitor adoption
-  ansible.builtin.command: ceph orch ps
-  register: ps_result
-  until: >
-    "mon.{{ inventory_hostname_short }}" in ps_result.stdout
-  retries: 120
-  delay: 5
-  changed_when: false
-  failed_when: ps_result.rc > 1
+galaxy_info:
+  author: VEXXHOST, Inc.
+  description: Manage "cephadm" hosts
+  license: Apache-2.0
+  min_ansible_version: 5.5.0
+  standalone: false
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy

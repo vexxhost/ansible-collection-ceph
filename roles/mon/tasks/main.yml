@@ -12,12 +12,44 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-- name: Bootstrap new monitor
-  ansible.builtin.include_tasks: bootstrap.yml
-  when:
-    - not ceph_adoption
+# TODO: detect and adopt existing monitor, then run through normal playbook
+# - name: Adopt exists monitor
+#   ansible.builtin.include_tasks: adopt.yml
 
-- name: Adopt exists monitor
-  ansible.builtin.include_tasks: adoption.yml
+- name: Set Ceph Monitor IP address
+  ansible.builtin.set_fact:
+    ceph_mon_ip_address: "{{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
+
+- name: Check if any node is bootstrapped
+  ansible.builtin.stat:
+    path: "/var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[item]['inventory_hostname_short'] }}/store.db"
+  register: _ceph_mon_stat
+  loop: "{{ groups[ceph_mon_group] }}"
+  delegate_to: "{{ item }}"
+
+- name: Select pre-existing bootstrap node if exists
+  ansible.builtin.set_fact:
+    _ceph_mon_bootstrap_node: "{{ _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first }}"
   when:
-    - ceph_adoption
+    - _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | length > 0
+
+- name: Bootstrap cluster
+  ansible.builtin.include_tasks: bootstrap-ceph.yml
+  when:
+    - _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | length == 0
+
+- name: Configure "mon" label for managers
+  changed_when: false
+  run_once: true
+  ansible.builtin.command:
+    cmd: cephadm shell -- ceph orch apply mon --placement="label:mon"
+
+- name: Install Ceph host
+  ansible.builtin.include_role:
+    name: vexxhost.ceph.cephadm_host
+  when: inventory_hostname != _ceph_mon_bootstrap_node
+  vars:
+    cephadm_host_admin_host: "{{ _ceph_mon_bootstrap_node }}"
+    cephadm_host_labels:
+      - _admin
+      - mon

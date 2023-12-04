@@ -10,7 +10,7 @@ license:
 dependencies:
   community.general: ">=4.5.0"
   ansible.utils: 2.9.0
-  vexxhost.containers: ">=1.1.0"
+  vexxhost.containers: ">=1.1.1"
 tags:
   - application
   - cloud

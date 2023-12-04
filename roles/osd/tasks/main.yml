@@ -12,45 +12,19 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-- name: Install packages
-  ansible.builtin.apt:
-    name: ["openssh-server"]
-    install_recommends: false
+- name: Install Ceph host
+  ansible.builtin.include_role:
+    name: vexxhost.ceph.cephadm_host
+  vars:
+    cephadm_host_admin_host: "{{ groups[ceph_osd_mons_group][0] }}"
 
-- name: Enable sshd Root Login
-  ansible.builtin.lineinfile:
-    dest: /etc/ssh/sshd_config
-    regexp: '^\#?\s?PermitRootLogin.*$'
-    line: "    PermitRootLogin yes"
-    state: present
-    backup: true
-  become: true
+# TODO: detect and adopt existing osd linked to this system
+# - name: Adopt exists osds
+#   ansible.builtin.include_tasks: adopt.yml
 
-- name: Make sure sshd is started
-  ansible.builtin.service:
-    name: sshd
-    state: started
-
-- name: Make sure docker is started
-  ansible.builtin.service:
-    name: docker
-    state: started
-
-- name: Set authorized key
-  ansible.posix.authorized_key:
-    user: root
-    key: "{{ ceph_ssh_pub_key }}"
-    state: present
-
-- name: Set osd host ipaddr
-  ansible.builtin.set_fact:
-    osd_ip: "{{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
-  when:
-    - not ceph_adoption
-
-- name: Adopt exists osd host
-  ansible.builtin.include_tasks: adopt-osd.yml
-  delegate_to: groups[ceph_mon_group][0]
-  run_once: true
-  when:
-    - ceph_adoption
+- name: Install OSDs
+  changed_when: false
+  delegate_to: "{{ groups[ceph_osd_mons_group][0] }}"
+  ansible.builtin.command:
+    cmd: cephadm shell -- ceph orch daemon add osd {{ inventory_hostname_short }}:{{ item }}
+  loop: "{{ ceph_osd_devices }}"

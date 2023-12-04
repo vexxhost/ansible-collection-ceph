@@ -12,12 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-- name: Validate manager adoption
-  ansible.builtin.command: ceph orch ps
-  register: ps_result
-  until: >
-    "mgr.{{ inventory_hostname_short }}" in ps_result.stdout
-  retries: 120
-  delay: 5
-  changed_when: false
-  failed_when: ps_result.rc > 1
+# User for SSH access
+cephadm_host_user: cephadm
+
+# Labels for the host
+cephadm_host_labels: []
