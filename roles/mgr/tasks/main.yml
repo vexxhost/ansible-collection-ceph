@@ -12,16 +12,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-- name: Add manager label to host
-  ansible.builtin.command:
-    cmd: ceph orch host label add "{{ inventory_hostname_short }}" mgr
-  changed_when: false
-
-- name: Add manager to cluster
-  ansible.builtin.command:
-    cmd: |
-      ceph orch daemon add mgr "{{ inventory_hostname_short }}:\
-      {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
+- name: Bootstrap new manager
+  ansible.builtin.include_tasks: bootstrap.yml
   when:
-    - inventory_hostname != groups[ceph_mon_group][0]
-  changed_when: false
+    - not ceph_adoption
+
+- name: Adopt exists manager
+  ansible.builtin.include_tasks: adoption.yml
+  when:
+    - ceph_adoption

@@ -12,7 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-- name: Deploy Cephadm
+- name: Deploy Ceph monitors & managers
   hosts: "{{ ceph_control_plane_group | default('controllers') }}"
   become: true
   roles:

@@ -1,4 +1,4 @@
-# Copyright (c) 2022 VEXXHOST, Inc.
+# Copyright (c) 2023 VEXXHOST, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -12,12 +12,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-- name: Bootstrap new monitor
-  ansible.builtin.include_tasks: bootstrap.yml
-  when:
-    - not ceph_adoption
+- name: Add manager label to host
+  ansible.builtin.command:
+    cmd: ceph orch host label add "{{ inventory_hostname_short }}" mgr
+  changed_when: false
 
-- name: Adopt exists monitor
-  ansible.builtin.include_tasks: adoption.yml
+- name: Add manager to cluster
+  ansible.builtin.command:
+    cmd: |
+      ceph orch daemon add mgr "{{ inventory_hostname_short }}:\
+      {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
   when:
-    - ceph_adoption
+    - inventory_hostname != groups[ceph_mon_group][0]
+  changed_when: false

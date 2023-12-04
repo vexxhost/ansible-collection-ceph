@@ -18,6 +18,7 @@
     install_recommends: false
 
 - name: Check Ceph cluster status
+  delegate_to: groups[ceph_mon_group][0]
   run_once: true
   block:
     - name: Check ceph exists
@@ -26,11 +27,21 @@
       changed_when: false
       register: ceph_status
 
+    - name: Set global flag for adoption
+      ansible.builtin.set_fact:
+        ceph_adoption: ceph_status.rc == 0 and adopt_exists
+      delegate_to: "{{ item }}"
+      with_items: "{{ ansible_play_hosts }}"
+      run_once: true
+
     - name: Fail when custer exists but no plan to adopt it
       ansible.builtin.fail:
-        msg: Existing cluster detected when adopt_exists is false.
+        msg: Existing cluster detected when adopt_exists set to false.
       when:
         - ceph_status.rc == 0 and not adopt_exists
+
+# TODO: ADD skip on exists
+# But allow perform config overwrite (ceph_mon_conf_overrides) still
 
 - name: Install packages
   ansible.builtin.apt:
@@ -58,11 +69,30 @@
 
 - name: Bootstrap cluster
   ansible.builtin.include_tasks: bootstrap-ceph.yml
+  delegate_to: groups[ceph_mon_group][0]
+  run_once: true
   when:
     - ceph_status.rc != 0
-    - inventory_hostname == groups[ceph_mon_group][0]
 
 - name: Adopt exists cluster
   ansible.builtin.include_tasks: adoption.yml
+  delegate_to: groups[ceph_mon_group][0]
+  run_once: true
   when:
-    - ceph_status.rc == 0 and adopt_exists
+    - ceph_adoption
+
+- name: Set authorized key
+  ansible.posix.authorized_key:
+    user: root
+    key: "{{ ceph_ssh_pub_key }}"
+    state: present
+
+- name: Add host to ceph cluster
+  ansible.builtin.command:
+    cmd: ceph orch host add "{{ inventory_hostname_short }} {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
+  changed_when: false
+
+- name: Add _admin label to host
+  ansible.builtin.command:
+    cmd: ceph orch host label add "{{ inventory_hostname_short }}" _admin
+  changed_when: false
