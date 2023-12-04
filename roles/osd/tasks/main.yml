@@ -14,7 +14,7 @@
 
 - name: Install packages
   ansible.builtin.apt:
-    name: ["openssh-server", "ceph-common"]
+    name: ["openssh-server"]
     install_recommends: false
 
 - name: Enable sshd Root Login
@@ -42,12 +42,15 @@
     key: "{{ ceph_ssh_pub_key }}"
     state: present
 
-- name: Bootstrap osd
-  ansible.builtin.include_tasks: bootstrap.yml
+- name: Set osd host ipaddr
+  ansible.builtin.set_fact:
+    osd_ip: "{{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
   when:
     - not ceph_adoption
 
-- name: Adopt exists monitor
+- name: Adopt exists osd host
   ansible.builtin.include_tasks: adopt-osd.yml
+  delegate_to: groups[ceph_mon_group][0]
+  run_once: true
   when:
     - ceph_adoption

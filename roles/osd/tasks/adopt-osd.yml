@@ -20,5 +20,3 @@
   ansible.builtin.command:
     cmd: cephadm adopt --style legacy --name "osd.{{ item }}"
   with_items: "{{ osd_list.stdout_lines }}"
-  delegate_to: groups[ceph_mon_group][0]
-  run_once: true

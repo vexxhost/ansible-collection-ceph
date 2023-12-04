@@ -80,3 +80,50 @@
     path: "{{ _ceph_cfg_tempfile.path }}"
     state: absent
   when: _ceph_cfg_tempfile.path is defined
+
+- name: Add osd hosts to ceph cluster
+  ansible.builtin.command:
+    ceph orch host add "{{ inventory_hostname_short }}" "{{ item }}" --labels=osd  # yamllint disable-line rule:line-length
+  loop: "{{ groups[ceph_osd_group] | map('extract', hostvars, ['osd_ip']) }}"  # yamllint disable-line rule:line-length
+  changed_when: false
+
+- name: Generate temporary file for osd spec
+  ansible.builtin.tempfile:
+    state: file
+    prefix: ceph_osd_spec
+  register: _ceph_osd_spec_tmp
+  changed_when: false
+
+- name: Write osd spec file
+  become: true
+  ansible.builtin.file:
+    src: "{{ lookup('ansible.builtin.file', ceph_osd_spec_file) }}"
+    dest: "{{ _ceph_osd_spec_tmp.path }}"
+    mode: '0640'
+  when:
+    - ceph_osd_spec_file is defined
+  changed_when: false
+
+- name: Write osd spec file
+  become: true
+  ansible.builtin.template:
+    src: osd_spec.j2
+    dest: "{{ _ceph_osd_spec_tmp.path }}"
+    mode: '0640'
+  changed_when: false
+  when:
+    - ceph_osd_spec_file is not defined
+
+- name: Apply osd spec file
+  ansible.builtin.command:
+    cmd: ceph orch apply -i {{ _ceph_osd_spec_tmp.path }}
+  when:
+    - ceph_osd_spec_file is defined
+  changed_when: false
+
+- name: Remove the temporary config file
+  ansible.builtin.file:
+    path: "{{ _ceph_osd_spec_tmp.path }}"
+    state: absent
+  when: _ceph_osd_spec_tmp.path is defined
+  changed_when: false
