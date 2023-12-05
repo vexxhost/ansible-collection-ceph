@@ -34,6 +34,13 @@
 
     # TODO: match ceph version for image
 
+    - name: Debug on ceph_mon_conf_overrides
+      ansible.builtin.debug:
+        msg: "{{ ceph_mon_conf_overrides }}"
+
+    - name: Debug on ceph_mon_conf_tempfile
+      ansible.builtin.command: cat {{ ceph_mon_conf_tempfile.path }}
+
     - name: Run Bootstrap coomand
       ansible.builtin.command:
         cmd: |
