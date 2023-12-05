@@ -12,13 +12,17 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# TODO: assimilate config from a mon (we can use run_once here, configs should all be same)
+# TODO: assimilate config from a mon
+#   (we can use run_once here, configs should all be same)
 # TODO: adopt mon (with throttle: 1) so we do it one at a time
-# TODO: adopt mgr (with throttle: 1) so we do it one at a time (note this is kinda cheating, because we are adopting it in mon role, but we always ran them on same node)
+# TODO: adopt mgr (with throttle: 1) so we do it one at a time
+#   (note this is kinda cheating, because we are adopting it
+#   in mon role, but we always ran them on same node)
 # TODO: enable cephadm mgr module + set orch to cephadm
 # TODO: ceph cephadm set-user
 # TODO: generate key
-# TODO: essetnially the end-state here should be that the rest of the main.yml runs fine
+# TODO: essetnially the end-state here should be that
+#   the rest of the main.yml runs fine
 
 - name: Validate monitor adoption
   ansible.builtin.command: ceph orch ps

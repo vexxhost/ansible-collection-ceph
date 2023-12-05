@@ -17,8 +17,10 @@
 - name: Get osd list from cluster
   ansible.builtin.command: ceph osd ls
   register: osd_list
+  changed_when: false
 
 - name: Adopt existing osds
   ansible.builtin.command:
     cmd: cephadm adopt --style legacy --name "osd.{{ item }}"
   with_items: "{{ osd_list.stdout_lines }}"
+  changed_when: false
