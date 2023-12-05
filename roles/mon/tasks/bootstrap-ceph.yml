@@ -52,13 +52,10 @@
         state: absent
       when: ceph_mon_conf_tempfile.path is defined
 
-- name: Add labels to host
+- name: Add 'mon' label to host
   changed_when: false
   ansible.builtin.command:
-    cmd: cephadm shell -- ceph orch host label add {{ inventory_hostname_short }} {{ item }}
-  loop:
-    - _admin
-    - mon
+    cmd: cephadm shell -- ceph orch host label add {{ inventory_hostname_short }} mon
 
 - name: Set bootstrap node
   ansible.builtin.set_fact:

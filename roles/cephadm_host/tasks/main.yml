@@ -44,10 +44,4 @@
       cephadm shell -- ceph orch host add
         {{ inventory_hostname_short }}
         {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}
-
-- name: Add labels to host
-  changed_when: false
-  delegate_to: "{{ cephadm_host_admin_host }}"
-  ansible.builtin.command:
-    cmd: cephadm shell -- ceph orch host label add {{ inventory_hostname_short }} {{ item }}
-  loop: "{{ cephadm_host_labels }}"
+        --labels="{{ cephadm_host_labels | join(',')}}"
