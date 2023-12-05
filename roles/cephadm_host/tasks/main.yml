@@ -44,4 +44,4 @@
       cephadm shell -- ceph orch host add
         {{ inventory_hostname_short }}
         {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}
-        {% if cephadm_host_labels | length>0 %}--labels={{ cephadm_host_labels | join(',')}}{% endif %}
+        {% if cephadm_host_labels | length > 0 %}--labels={{ cephadm_host_labels | join(',') }}{% endif %}
