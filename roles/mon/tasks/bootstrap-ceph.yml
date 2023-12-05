@@ -40,6 +40,11 @@
 
     - name: Debug on ceph_mon_conf_tempfile
       ansible.builtin.command: cat {{ ceph_mon_conf_tempfile.path }}
+      register: ceph_mon_conf_tempfile_output
+
+    - name: Debug on ceph_mon_conf_tempfile_output
+      ansible.builtin.debug:
+        msg: "{{ ceph_mon_conf_tempfile_output }}"
 
     - name: Run Bootstrap coomand
       ansible.builtin.command:
@@ -52,6 +57,15 @@
             --config {{ ceph_mon_conf_tempfile.path }}
             --skip-monitoring-stack
       changed_when: false
+
+    - name: Debug on ceph_conf
+      ansible.builtin.command: cat /etc/ceph/ceph.conf
+      register: ceph_conf_output
+
+    - name: Debug on ceph_conf_output
+      ansible.builtin.debug:
+        msg: "{{ ceph_conf_output }}"
+
   always:
     - name: Remove temporary file for "ceph.conf"
       ansible.builtin.file:
