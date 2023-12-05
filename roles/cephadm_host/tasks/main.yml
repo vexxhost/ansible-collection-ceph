@@ -38,6 +38,7 @@
 
 - name: Add new host to Ceph
   changed_when: false
+  delegate_to: "{{ cephadm_host_admin_host }}"
   ansible.builtin.command:
     cmd: |
       cephadm shell -- ceph orch host add
@@ -46,6 +47,7 @@
 
 - name: Add labels to host
   changed_when: false
+  delegate_to: "{{ cephadm_host_admin_host }}"
   ansible.builtin.command:
     cmd: cephadm shell -- ceph orch host label add {{ inventory_hostname_short }} {{ item }}
   loop: "{{ cephadm_host_labels }}"
