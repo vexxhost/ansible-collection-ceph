@@ -49,9 +49,10 @@
   when:
     - _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | length == 0
 
-- name: Configure "mon" label for managers
-  changed_when: false
+- name: Configure "mon" label for monitors
+  delegate_to: "{{ _ceph_mon_bootstrap_node }}"
   run_once: true
+  changed_when: false
   ansible.builtin.command:
     cmd: cephadm shell -- ceph orch apply mon --placement="label:mon"
 

@@ -73,17 +73,17 @@
         msg: "{{ ceph_conf_output }}"
       changed_when: false
 
+    - name: Add 'mon' label to host
+      changed_when: false
+      ansible.builtin.command:
+        cmd: cephadm shell -- ceph orch host label add {{ inventory_hostname_short }} mon
+
 #  always:
 #    - name: Remove temporary file for "ceph.conf"
 #      ansible.builtin.file:
 #        path: "{{ ceph_mon_conf_tempfile.path }}"
 #        state: absent
 #      when: ceph_mon_conf_tempfile.path is defined
-
-- name: Add 'mon' label to host
-  changed_when: false
-  ansible.builtin.command:
-    cmd: cephadm shell -- ceph orch host label add {{ inventory_hostname_short }} mon
 
 - name: Set bootstrap node
   ansible.builtin.set_fact:
