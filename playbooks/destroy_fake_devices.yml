@@ -24,8 +24,20 @@
   tasks:
     - name: Shutdown all OSDs
       ansible.builtin.service:
-        name: ceph-osd.target
+        name: ceph.target
         state: stopped
+
+    - name: Get list of all running containers
+      ansible.builtin.command:
+        cmd: docker ps --format "{{ '{{' }} .Names {{ '}}' }}"
+      register: _docker_ps
+      retries: 60
+      delay: 5
+      until: _docker_ps.stdout_lines | length == 0
+      changed_when: false
+      failed_when:
+        - _docker_ps.rc != 0
+        - _docker_ps.stdout_lines | length > 0
 
     - name: Get list of all loopback devices
       ansible.builtin.command: losetup -J
