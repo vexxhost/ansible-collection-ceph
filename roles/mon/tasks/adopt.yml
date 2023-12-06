@@ -12,20 +12,51 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# TODO: assimilate config from a mon
-#   (we can use run_once here, configs should all be same)
-# TODO: adopt mon (with throttle: 1) so we do it one at a time
-# TODO: adopt mgr (with throttle: 1) so we do it one at a time
-#   (note this is kinda cheating, because we are adopting it
-#   in mon role, but we always ran them on same node)
-# TODO: enable cephadm mgr module + set orch to cephadm
-# TODO: ceph cephadm set-user
-# TODO: generate key
-# TODO: essetnially the end-state here should be that
-#   the rest of the main.yml runs fine
+- name: Adopt Ceph cluster
+  when:
+    - inventory_hostname == groups[ceph_mon_group][0]
+  block:
+    - name: Get ceph state
+      ansible.builtin.command: cephadm shell -- ceph orch status
+      ignore_error: true
+      register: orch_status_result
+
+    # current cluster is not cephadm backend, requires to convert to cephadm
+    - name: Prepare adopting
+      ansible.builtin.include_tasks: prepare-adopt.yml
+      when: "'Backend: cephadm' not in orch_status_result.stdout"
+
+    - name: Assimilate existing configs
+      ansible.builtin.command: cephadm shell -- ceph config assimilate-conf -i /etc/ceph/ceph.config
+
+    - name: Adopt monitor to cluster
+      throttle: 1
+      ansible.builtin.command:
+        cmd: |
+          cephadm adopt --style legacy --name "mon.{{ item }}"
+      loop: groups[ceph_mon_group]
+
+    - name: Adopt manager to cluster
+      throttle: 1
+      ansible.builtin.command:
+        cmd: |
+          cephadm adopt --style legacy --name "mgr.{{ item }}"
+      loop: groups[ceph_mon_group]
+
+    - name: Ceph mgr module enable cephadm
+      ansible.builtin.command: cephadm shell -- ceph mgr module enable cephadm
+
+    - name: Ceph orch set backend cephadm
+      ansible.builtin.command: cephadm shell -- ceph orch set backend cephadm
+
+    - name: Use `cephadm` user for cephadm
+      ansible.builtin.command: cephadm shell -- ceph cephadm set-user cephadm
+
+    - name: Ceph cephadm generate-key
+      ansible.builtin.command: cephadm shell -- ceph cephadm generate-key
 
 - name: Validate monitor adoption
-  ansible.builtin.command: ceph orch ps
+  ansible.builtin.command: cephadm shell -- ceph orch ps
   register: ps_result
   until: >
     "mon.{{ inventory_hostname_short }}" in ps_result.stdout

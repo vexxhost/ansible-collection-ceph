@@ -12,15 +12,19 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-- name: Get osd list for this host from cluster
-  ansible.builtin.command: |
-    cephadm shell -- ceph osd ls-tree {{ inventory_hostname_short }}
-  register: osd_list
-  changed_when: false
+- name: Prepare hosts for cephadm backend
+  block:
+    - name: Run prepare host
+      delegate_to: "{{ item }}"
+      ansible.builtin.command: cephadm prepare-host
+      loop: "{{ play_hosts }}"
 
-- name: Adopt existing osds
-  ansible.builtin.command:
-    cmd: cephadm adopt --style legacy --name "osd.{{ item }}"
-  throttle: 1
-  with_items: "{{ osd_list.stdout_lines }}"
-  changed_when: false
+    - name: Wait for prepare host process complete
+      ansible.builtin.command: cephadm ls
+      register: convert_status
+      until: >
+        '"style": "legacy"' not in convert_status.stdout
+      retries: 120
+      delay: 5
+      changed_when: false
+      failed_when: convert_status.rc > 1

@@ -18,9 +18,10 @@
   vars:
     cephadm_host_admin_host: "{{ groups[ceph_osd_mons_group][0] }}"
 
-# TODO: detect and adopt existing osd linked to this system
-# - name: Adopt exists osds
-#   ansible.builtin.include_tasks: adopt.yml
+- name: Adopt exists osds
+  ansible.builtin.include_tasks: adopt.yml
+  when:
+    - hostvars[groups[ceph_osd_mons_group][0]]['is_adopt']
 
 - name: Install OSDs
   changed_when: false
@@ -28,3 +29,5 @@
   ansible.builtin.command:
     cmd: cephadm shell -- ceph orch daemon add osd {{ inventory_hostname_short }}:{{ item }}
   loop: "{{ ceph_osd_devices }}"
+  when:
+    - not hostvars[groups[ceph_osd_mons_group][0]]['is_adopt']
