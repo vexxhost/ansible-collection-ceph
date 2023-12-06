@@ -18,7 +18,7 @@
   block:
     - name: Get ceph state
       ansible.builtin.command: cephadm shell -- ceph orch status
-      ignore_error: true
+      ignore_errors: true
       register: orch_status_result
 
     # current cluster is not cephadm backend, requires to convert to cephadm
