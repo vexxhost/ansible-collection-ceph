@@ -34,6 +34,8 @@
 
     # TODO: match ceph version for image
 
+    # TODO: Remove debug tasks
+
     - name: Debug on ceph_mon_conf_overrides
       ansible.builtin.debug:
         msg: "{{ ceph_mon_conf_overrides }}"
@@ -66,12 +68,12 @@
       ansible.builtin.debug:
         msg: "{{ ceph_conf_output }}"
 
-  always:
-    - name: Remove temporary file for "ceph.conf"
-      ansible.builtin.file:
-        path: "{{ ceph_mon_conf_tempfile.path }}"
-        state: absent
-      when: ceph_mon_conf_tempfile.path is defined
+#  always:
+#    - name: Remove temporary file for "ceph.conf"
+#      ansible.builtin.file:
+#        path: "{{ ceph_mon_conf_tempfile.path }}"
+#        state: absent
+#      when: ceph_mon_conf_tempfile.path is defined
 
 - name: Add 'mon' label to host
   changed_when: false
