@@ -22,8 +22,23 @@
       register: orch_status_result
 
     # current cluster is not cephadm backend, requires to convert to cephadm
-    - name: Prepare adopting
-      ansible.builtin.include_tasks: prepare-adopt.yml
+    - name: Prepare hosts for cephadm backend
+      block:
+        # This task requires all hosts to have cephadm ready in place
+        - name: Run prepare host
+          delegate_to: "{{ item }}"
+          ansible.builtin.command: cephadm prepare-host
+          loop: "{{ play_hosts }}"
+
+        - name: Wait for prepare host process complete
+          ansible.builtin.command: cephadm ls
+          register: convert_status
+          until: >
+            '"style": "legacy"' not in convert_status.stdout
+          retries: 120
+          delay: 5
+          changed_when: false
+          failed_when: convert_status.rc > 1
       when: "'Backend: cephadm' not in orch_status_result.stdout"
 
     - name: Assimilate existing configs

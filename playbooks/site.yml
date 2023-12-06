@@ -20,8 +20,6 @@
     - role: cephadm
       tags:
         - cephadm
-  when:
-    - adopt_exists
 
 - name: Deploy Ceph monitors & managers
   hosts: "{{ ceph_control_plane_group | default('controllers') }}"

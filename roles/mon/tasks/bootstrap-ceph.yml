@@ -39,14 +39,17 @@
     - name: Debug on ceph_mon_conf_overrides
       ansible.builtin.debug:
         msg: "{{ ceph_mon_conf_overrides }}"
+      changed_when: false
 
     - name: Debug on ceph_mon_conf_tempfile
       ansible.builtin.command: cat {{ ceph_mon_conf_tempfile.path }}
       register: ceph_mon_conf_tempfile_output
+      changed_when: false
 
     - name: Debug on ceph_mon_conf_tempfile_output
       ansible.builtin.debug:
         msg: "{{ ceph_mon_conf_tempfile_output }}"
+      changed_when: false
 
     - name: Run Bootstrap coomand
       ansible.builtin.command:
@@ -63,10 +66,12 @@
     - name: Debug on ceph_conf
       ansible.builtin.command: cat /etc/ceph/ceph.conf
       register: ceph_conf_output
+      changed_when: false
 
     - name: Debug on ceph_conf_output
       ansible.builtin.debug:
         msg: "{{ ceph_conf_output }}"
+      changed_when: false
 
 #  always:
 #    - name: Remove temporary file for "ceph.conf"
