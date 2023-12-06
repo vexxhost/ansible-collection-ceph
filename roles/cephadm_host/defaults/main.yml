@@ -17,3 +17,6 @@ cephadm_host_user: cephadm
 
 # Labels for the host
 cephadm_host_labels: []
+
+ceph_mon_public_network: "{{ ceph_public_network | default('0.0.0.0/0') }}"
+ceph_mon_cluster_network: "{{ ceph_cluster_network | default(ceph_mon_public_network) }}"

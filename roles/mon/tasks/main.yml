@@ -17,6 +17,7 @@
     ceph_mon_ip_address: "{{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
 
 - name: Check if any node is bootstrapped
+  run_once: true
   ansible.builtin.stat:
     path: "/var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[item]['inventory_hostname_short'] }}/store.db"
   register: _ceph_mon_stat
@@ -26,11 +27,10 @@
 - name: Set flag for adopt
   run_once: true
   ansible.builtin.set_fact:
-    is_adopt: "{% if (_ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | length > 0) and adopt_exists %}
-    true
-    {% else %}
-    false
-    {% endif %}"
+    is_adopt: true
+  when:
+    - _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | length > 0
+    - adopt_exists
 
 - name: Adopt exists monitors
   ansible.builtin.include_tasks: adopt.yml
