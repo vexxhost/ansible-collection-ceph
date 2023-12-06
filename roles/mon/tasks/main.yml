@@ -28,7 +28,7 @@
   ansible.builtin.set_fact:
     is_adopt: true
   when:
-    - "{{ _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | length > 0 }}"
+    - _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | length > 0
     - adopt_exists
 
 - name: Adopt exists monitors

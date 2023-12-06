@@ -23,12 +23,14 @@
 
     # current cluster is not cephadm backend, requires to convert to cephadm
     - name: Prepare hosts for cephadm backend
+      when: "'Backend: cephadm' not in orch_status_result.stdout"
       block:
         # This task requires all hosts to have cephadm ready in place
         - name: Run prepare host
           delegate_to: "{{ item }}"
           ansible.builtin.command: cephadm prepare-host
           loop: "{{ play_hosts }}"
+          changed_when: false
 
         - name: Wait for prepare host process complete
           ansible.builtin.command: cephadm ls
@@ -39,10 +41,10 @@
           delay: 5
           changed_when: false
           failed_when: convert_status.rc > 1
-      when: "'Backend: cephadm' not in orch_status_result.stdout"
 
     - name: Assimilate existing configs
       ansible.builtin.command: cephadm shell -- ceph config assimilate-conf -i /etc/ceph/ceph.config
+      changed_when: false
 
     - name: Adopt monitor to cluster
       throttle: 1
@@ -50,6 +52,7 @@
         cmd: |
           cephadm adopt --style legacy --name "mon.{{ item }}"
       loop: groups[ceph_mon_group]
+      changed_when: false
 
     - name: Adopt manager to cluster
       throttle: 1
@@ -57,18 +60,23 @@
         cmd: |
           cephadm adopt --style legacy --name "mgr.{{ item }}"
       loop: groups[ceph_mon_group]
+      changed_when: false
 
     - name: Ceph mgr module enable cephadm
       ansible.builtin.command: cephadm shell -- ceph mgr module enable cephadm
+      changed_when: false
 
     - name: Ceph orch set backend cephadm
       ansible.builtin.command: cephadm shell -- ceph orch set backend cephadm
+      changed_when: false
 
     - name: Use `cephadm` user for cephadm
       ansible.builtin.command: cephadm shell -- ceph cephadm set-user cephadm
+      changed_when: false
 
     - name: Ceph cephadm generate-key
       ansible.builtin.command: cephadm shell -- ceph cephadm generate-key
+      changed_when: false
 
 - name: Validate monitor adoption
   ansible.builtin.command: cephadm shell -- ceph orch ps
