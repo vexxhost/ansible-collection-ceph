@@ -32,6 +32,7 @@ platforms:
       - /lib/modules:/lib/modules:ro
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
       - /usr/src:/usr/src:ro
+      - /var/lib/docker
     groups:
       - controllers
       - cephs
