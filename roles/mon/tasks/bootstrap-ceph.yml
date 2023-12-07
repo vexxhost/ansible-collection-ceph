@@ -73,6 +73,16 @@
         msg: "{{ ceph_conf_output }}"
       changed_when: false
 
+    - name: Debug on ceph_conf dump
+      ansible.builtin.command: cephadm shell -- ceph config dump
+      register: ceph_conf_dump
+      changed_when: false
+
+    - name: Debug on ceph_conf_dump
+      ansible.builtin.debug:
+        msg: "{{ ceph_conf_dump }}"
+      changed_when: false
+
     - name: Add 'mon' label to host
       changed_when: false
       ansible.builtin.command:
