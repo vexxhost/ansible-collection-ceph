@@ -16,5 +16,5 @@
 ceph_osd_mons_group: "{{ ceph_control_plane_group | default('controllers') }}"
 
 # Make sure we plan to adopt exist cluster
-adopt_exists:  "{{ ceph_adopt_exists | default(false) }}"
+adopt_exists: "{{ ceph_adopt_exists | default(false) }}"
 is_adopt: false
