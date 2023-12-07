@@ -22,8 +22,8 @@
       register: _ceph_health
 
     #TODO remove this debug
-    - name: Debug cluster health
-      ansible.builtin.command: cephadm shell -- ceph log last cephadm
+    - name: Debug cluster log
+      ansible.builtin.command: cat /var/log/ceph/cephadm.log
       register: _ceph_log
     - name: Print `ceph log last cephadm`
       ansible.builtin.debug:
@@ -34,12 +34,27 @@
     - name: Print `_osd_stat`
       ansible.builtin.debug:
         var: _osd_stat
-    - name: Debug ceph osd tree
-      ansible.builtin.command: cephadm shell -- ceph osd tree
-      register: _osd_tree
-    - name: Print `_osd_tree`
+
+    - name: Debug journalctl
+      ansible.builtin.command: journalctl
+      register: _journalctl
+    - name: Print `_journalctl`
       ansible.builtin.debug:
-        var: _osd_tree
+        var: _journalctl
+
+    - name: Debug ceph ceph orch osd rm status
+      ansible.builtin.command: cephadm shell -- ceph orch osd rm status
+      register: _orch_rm_s
+    - name: Print `_orch_rm_s`
+      ansible.builtin.debug:
+        var: _orch_rm_s
+
+    - name: Debug ceph orch ps
+      ansible.builtin.command: cephadm shell -- ceph orch ps
+      register: _orch_ps
+    - name: Print `_orch_ps`
+      ansible.builtin.debug:
+        var: _orch_ps
 
     - name: Print cluster health status
       ansible.builtin.debug:

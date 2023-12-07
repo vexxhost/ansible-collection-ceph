@@ -46,12 +46,13 @@
   when:
     - is_adopt
 
+#TODO remove ,osds_per_device=1
 - name: Install OSDs
   throttle: 1
   changed_when: false
   delegate_to: "{{ _cephadm_host_admin_host | default(groups[ceph_osd_mons_group][0]) }}"
   ansible.builtin.command:
-    cmd: cephadm shell -- ceph orch daemon add osd {{ inventory_hostname_short }}:{{ item }}
+    cmd: cephadm shell -- ceph orch daemon add osd {{ inventory_hostname_short }}:{{ item }},osds_per_device=1
   loop: "{{ ceph_osd_devices }}"
   when:
     - not is_adopt
@@ -66,5 +67,11 @@
   until:
     - (wait_for_all_osds_up.stdout | from_json)["num_osds"] | int > 0
     - (wait_for_all_osds_up.stdout | from_json)["num_osds"] == (wait_for_all_osds_up.stdout | from_json)["num_up_osds"]
+  when:
+    - inventory_hostname == groups[ceph_osd_osds_group] | last
+
+- name: debug on osd 
+  ansible.builtin.pause:
+    minutes: 10
   when:
     - inventory_hostname == groups[ceph_osd_osds_group] | last
