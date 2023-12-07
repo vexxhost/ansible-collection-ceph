@@ -12,13 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-- name: Install Ceph host
-  ansible.builtin.include_role:
-    name: vexxhost.ceph.cephadm_host
-  vars:
-    cephadm_host_admin_host: "{{ groups[ceph_osd_mons_group][0] }}"
-
-- name: Check if any node is bootstrapped
+- name: Get mon status
   run_once: true
   ansible.builtin.stat:
     path: "/var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[item]['inventory_hostname_short'] }}/store.db"
@@ -33,7 +27,19 @@
   when:
     - _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | length > 0
     - adopt_exists
-  delegate_to: "{{ groups[ceph_osd_mons_group][0] }}"
+
+- name: Select admin host
+  ansible.builtin.set_fact:
+    _cephadm_host_admin_host: "{{ _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first }}"
+  when:
+    - _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | length > 0
+    - not is_adopt
+
+- name: Install Ceph host
+  ansible.builtin.include_role:
+    name: vexxhost.ceph.cephadm_host
+  vars:
+    cephadm_host_admin_host: "{{ _cephadm_host_admin_host | default(groups[ceph_mon_group][0]) }}"
 
 - name: Adopt exists osds
   ansible.builtin.include_tasks: adopt.yml
@@ -43,7 +49,7 @@
 - name: Install OSDs
   throttle: 1
   changed_when: false
-  delegate_to: "{{ groups[ceph_osd_mons_group][0] }}"
+  delegate_to: "{{ _cephadm_host_admin_host | default(groups[ceph_mon_group][0]) }}"
   ansible.builtin.command:
     cmd: cephadm shell -- ceph orch daemon add osd {{ inventory_hostname_short }}:{{ item }}
   loop: "{{ ceph_osd_devices }}"
