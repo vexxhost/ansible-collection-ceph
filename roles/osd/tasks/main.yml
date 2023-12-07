@@ -41,10 +41,13 @@
     - is_adopt
 
 - name: Install OSDs
+  throttle: 1
   changed_when: false
   delegate_to: "{{ groups[ceph_osd_mons_group][0] }}"
   ansible.builtin.command:
     cmd: cephadm shell -- ceph orch daemon add osd {{ inventory_hostname_short }}:{{ item }}
   loop: "{{ ceph_osd_devices }}"
+  loop_control:
+    pause: 5
   when:
     - not is_adopt
