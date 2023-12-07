@@ -16,7 +16,7 @@
   ansible.builtin.include_role:
     name: vexxhost.ceph.cephadm_host
   vars:
-    cephadm_host_admin_host: "{{ inventory_hostname }}"
+    cephadm_host_admin_host: "{{ _ceph_mon_bootstrap_node | default(groups[ceph_mon_group][0]) }}"
     cephadm_host_labels:
       - _admin
       - mgr
