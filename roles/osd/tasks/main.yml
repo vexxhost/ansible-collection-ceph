@@ -39,7 +39,7 @@
   ansible.builtin.include_role:
     name: vexxhost.ceph.cephadm_host
   vars:
-    cephadm_host_admin_host: "{{ _cephadm_host_admin_host | default(groups[ceph_mon_group][0]) }}"
+    cephadm_host_admin_host: "{{ _cephadm_host_admin_host | default(groups[ceph_osd_mons_group][0]) }}"
 
 - name: Adopt exists osds
   ansible.builtin.include_tasks: adopt.yml
@@ -49,11 +49,22 @@
 - name: Install OSDs
   throttle: 1
   changed_when: false
-  delegate_to: "{{ _cephadm_host_admin_host | default(groups[ceph_mon_group][0]) }}"
+  delegate_to: "{{ _cephadm_host_admin_host | default(groups[ceph_osd_mons_group][0]) }}"
   ansible.builtin.command:
     cmd: cephadm shell -- ceph orch daemon add osd {{ inventory_hostname_short }}:{{ item }}
   loop: "{{ ceph_osd_devices }}"
-  loop_control:
-    pause: 5
   when:
     - not is_adopt
+
+- name: Wait for all osd to be up
+  ansible.builtin.command: cephadm shell -- ceph osd stat -f json
+  register: wait_for_all_osds_up
+  retries: 60
+  delay: 5
+  changed_when: false
+  delegate_to: "{{ _cephadm_host_admin_host | default(groups[ceph_osd_mons_group][0]) }}"
+  until:
+    - (wait_for_all_osds_up.stdout | from_json)["num_osds"] | int > 0
+    - (wait_for_all_osds_up.stdout | from_json)["num_osds"] == (wait_for_all_osds_up.stdout | from_json)["num_up_osds"]
+  when:
+    - inventory_hostname == ansible_play_hosts_all | last
