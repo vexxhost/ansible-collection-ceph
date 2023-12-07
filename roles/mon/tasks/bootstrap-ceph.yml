@@ -34,23 +34,6 @@
 
     # TODO: match ceph version for image
 
-    #TODO: Remove debug tasks
-
-    - name: Debug on ceph_mon_conf_overrides
-      ansible.builtin.debug:
-        msg: "{{ ceph_mon_conf_overrides }}"
-      changed_when: false
-
-    - name: Debug on ceph_mon_conf_tempfile
-      ansible.builtin.command: cat {{ ceph_mon_conf_tempfile.path }}
-      register: ceph_mon_conf_tempfile_output
-      changed_when: false
-
-    - name: Debug on ceph_mon_conf_tempfile_output
-      ansible.builtin.debug:
-        msg: "{{ ceph_mon_conf_tempfile_output }}"
-      changed_when: false
-
     - name: Run Bootstrap coomand
       ansible.builtin.command:
         cmd: |
@@ -63,37 +46,17 @@
             --skip-monitoring-stack
       changed_when: false
 
-    - name: Debug on ceph_conf
-      ansible.builtin.command: cat /etc/ceph/ceph.conf
-      register: ceph_conf_output
-      changed_when: false
-
-    - name: Debug on ceph_conf_output
-      ansible.builtin.debug:
-        msg: "{{ ceph_conf_output }}"
-      changed_when: false
-
-    - name: Debug on ceph_conf dump
-      ansible.builtin.command: cephadm shell -- ceph config dump
-      register: ceph_conf_dump
-      changed_when: false
-
-    - name: Debug on ceph_conf_dump
-      ansible.builtin.debug:
-        msg: "{{ ceph_conf_dump }}"
-      changed_when: false
-
     - name: Add 'mon' label to host
       changed_when: false
       ansible.builtin.command:
         cmd: cephadm shell -- ceph orch host label add {{ inventory_hostname_short }} mon
 
-#  always:
-#    - name: Remove temporary file for "ceph.conf"
-#      ansible.builtin.file:
-#        path: "{{ ceph_mon_conf_tempfile.path }}"
-#        state: absent
-#      when: ceph_mon_conf_tempfile.path is defined
+  always:
+    - name: Remove temporary file for "ceph.conf"
+      ansible.builtin.file:
+        path: "{{ ceph_mon_conf_tempfile.path }}"
+        state: absent
+      when: ceph_mon_conf_tempfile.path is defined
 
 - name: Set bootstrap node
   ansible.builtin.set_fact:
