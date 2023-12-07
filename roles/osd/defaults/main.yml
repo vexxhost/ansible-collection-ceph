@@ -14,6 +14,8 @@
 
 # Inventory group for Ceph monitors
 ceph_osd_mons_group: "{{ ceph_control_plane_group | default('controllers') }}"
+ceph_osd_osds_group: "{{ ceph_osd_group | default('cephs') }}"
+
 
 # Make sure we plan to adopt exist cluster
 adopt_exists: "{{ ceph_adopt_exists | default(false) }}"

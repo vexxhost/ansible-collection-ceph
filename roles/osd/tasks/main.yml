@@ -67,4 +67,4 @@
     - (wait_for_all_osds_up.stdout | from_json)["num_osds"] | int > 0
     - (wait_for_all_osds_up.stdout | from_json)["num_osds"] == (wait_for_all_osds_up.stdout | from_json)["num_up_osds"]
   when:
-    - inventory_hostname == ansible_play_hosts_all | last
+    - inventory_hostname == groups[ceph_osd_osds_group] | last
