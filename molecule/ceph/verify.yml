@@ -17,8 +17,23 @@
   become: true
   tasks:
     - name: Get cluster health status
-      ansible.builtin.command: cephadm shell -- ceph health
+      #ansible.builtin.command: cephadm shell -- ceph health
+      ansible.builtin.command: cephadm shell -- ceph health detail
       register: _ceph_health
+
+    #TODO remove this debug
+    - name: Debug cluster health
+      ansible.builtin.command: cephadm shell -- ceph log last cephadm
+      register: _ceph_log
+    - name: Print `ceph log last cephadm`
+      ansible.builtin.debug:
+        var: _ceph_log
+    - name: Debug cluster health
+      ansible.builtin.command: cephadm ls
+      register: _cephadm_ls
+    - name: Print `cephadm ls`
+      ansible.builtin.debug:
+        var: _cephadm_ls
 
     - name: Print cluster health status
       ansible.builtin.debug:

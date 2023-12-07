@@ -55,7 +55,7 @@ platforms:
 provisioner:
   name: ansible
   config_options:
-    # TODO remove callbacks_enabled
+    #TODO remove callbacks_enabled
     defaults:
       callbacks_enabled: ansible.posix.profile_tasks
     connection:
