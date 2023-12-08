@@ -1,0 +1,48 @@
+# Copyright (c) 2023 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+- name: 'Wait until success'
+  block:
+    - name: Set the retry count
+      set_fact:
+        retry_count: "{{ 0 if retry_count is undefined else retry_count|int + 1 }}"
+
+    - name: Get `ceph orch ps`
+      ansible.builtin.command: cephadm shell -- ceph orch ps --format json
+      register: _orch_ps
+      delegate_to: "{{ _cephadm_host_admin_host | default(groups[ceph_osd_mons_group][0]) }}"
+      changed_when: false
+
+    - name: Fail if any OSD not running
+      ansible.builtin.fail:
+      when: item != 1
+      loop: "{{ _orch_ps.stdout | from_json | selectattr('daemon_type', 'equalto', 'osd') | map(attribute='status') }}"
+
+    - name: Fail if any duplicate OSD ID
+      ansible.builtin.fail:
+      when: _orch_ps.stdout | from_json | selectattr('daemon_type', 'equalto', 'osd') | map(attribute='daemon_id') | duplicates |length > 0
+
+  rescue:
+    - ansible.builtin.fail:
+        msg: Ended after 120 retries
+      #TODO move to 120 as default
+      when: retry_count|int == (ceph_osd_check_retry | default(10))
+
+    - ansible.builtin.pause:
+        seconds: 5
+
+    - ansible.builtin.debug:
+        msg: "OSDs not in running status - Recheck later"
+
+    - ansible.builtin.include_tasks: check-osds.yml

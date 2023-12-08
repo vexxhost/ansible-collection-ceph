@@ -17,40 +17,14 @@
   become: true
   tasks:
     - name: Get cluster health status
+      #TODO remove this debug
       #ansible.builtin.command: cephadm shell -- ceph health
       ansible.builtin.command: cephadm shell -- ceph health detail
       register: _ceph_health
 
     #TODO remove this debug
-    - name: Debug cluster log
-      ansible.builtin.command: cat /var/log/ceph/cephadm.log
-      register: _ceph_log
-    - name: Print `ceph log last cephadm`
-      ansible.builtin.debug:
-        var: _ceph_log
-    - name: Debug ceph osd status
-      ansible.builtin.command: cephadm shell -- ceph osd status
-      register: _osd_stat
-    - name: Print `_osd_stat`
-      ansible.builtin.debug:
-        var: _osd_stat
-
-    - name: Debug journalctl
-      ansible.builtin.command: journalctl
-      register: _journalctl
-    - name: Print `_journalctl`
-      ansible.builtin.debug:
-        var: _journalctl
-
-    - name: Debug ceph ceph orch osd rm status
-      ansible.builtin.command: cephadm shell -- ceph orch osd rm status
-      register: _orch_rm_s
-    - name: Print `_orch_rm_s`
-      ansible.builtin.debug:
-        var: _orch_rm_s
-
     - name: Debug ceph orch ps
-      ansible.builtin.command: cephadm shell -- ceph orch ps
+      ansible.builtin.command: cephadm shell -- ceph orch ps --format json
       register: _orch_ps
     - name: Print `_orch_ps`
       ansible.builtin.debug:
