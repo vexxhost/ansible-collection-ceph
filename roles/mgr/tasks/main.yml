@@ -23,6 +23,7 @@
 
 - name: Configure "mgr" label for managers
   changed_when: false
+  delegate_to: "{{ _ceph_mon_bootstrap_node | default(groups[ceph_mon_group][0]) }}"
   run_once: true
   ansible.builtin.command:
     cmd: cephadm shell -- ceph orch apply mgr --placement="label:mgr"
