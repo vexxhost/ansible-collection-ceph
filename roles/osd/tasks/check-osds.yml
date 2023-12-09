@@ -15,8 +15,8 @@
 - name: 'Wait until success'
   block:
     - name: Set the retry count
-      set_fact:
-        retry_count: "{{ 0 if retry_count is undefined else retry_count|int + 1 }}"
+      ansible.builtin.set_fact:
+        retry_count: "{{ 0 if retry_count is undefined else retry_count | int + 1 }}"
 
     - name: Get `ceph orch ps`
       ansible.builtin.command: cephadm shell -- ceph orch ps --format json
@@ -34,15 +34,14 @@
       when: _orch_ps.stdout | from_json | selectattr('daemon_type', 'equalto', 'osd') | map(attribute='daemon_id') | duplicates |length > 0
 
   rescue:
-    - ansible.builtin.fail:
+    - name: Failed after retry
+      ansible.builtin.fail:
         msg: Ended after 120 retries
-      #TODO move to 120 as default
-      when: retry_count|int == (ceph_osd_check_retry | default(10))
+      when: retry_count|int == (ceph_osd_check_retry | default(120))
 
-    - ansible.builtin.pause:
+    - name: Give 5 seconds pause before retry
+      ansible.builtin.pause:
         seconds: 5
 
-    - ansible.builtin.debug:
-        msg: "OSDs not in running status - Recheck later"
-
-    - ansible.builtin.include_tasks: check-osds.yml
+    - name: Recheck OSDs
+      ansible.builtin.include_tasks: check-osds.yml
