@@ -32,10 +32,12 @@
         mode: "0640"
       loop: "{{ ceph_mon_conf_overrides }}"
 
+    # TODO: match ceph version for image
+
     - name: Run Bootstrap coomand
       ansible.builtin.command:
         cmd: |
-          cephadm --image {{ ceph_bootstrap_image }} bootstrap
+          cephadm bootstrap
             --fsid {{ ceph_mon_fsid }}
             --mon-ip {{ ceph_mon_ip_address }}
             --cluster-network {{ ceph_mon_cluster_network }}
