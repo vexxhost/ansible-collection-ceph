@@ -44,23 +44,23 @@
           failed_when: convert_status.rc > 1
 
     - name: Assimilate existing configs
-      ansible.builtin.command: cephadm shell -- ceph config assimilate-conf -i /etc/ceph/ceph.config
+      ansible.builtin.command: cephadm shell -- ceph config assimilate-conf -i /etc/ceph/ceph.conf
       changed_when: false
 
     - name: Adopt monitor to cluster
       throttle: 1
       ansible.builtin.command:
         cmd: |
-          cephadm adopt --style legacy --name "mon.{{ item }}"
-      loop: groups[ceph_mon_group]
+          cephadm adopt --style legacy --legacy-dir "{{ ceph_legacy_dir }}" --name "mon.{{ item }}"
+      loop: "{{ groups[ceph_mon_group] }}"
       changed_when: false
 
     - name: Adopt manager to cluster
       throttle: 1
       ansible.builtin.command:
         cmd: |
-          cephadm adopt --style legacy --name "mgr.{{ item }}"
-      loop: groups[ceph_mon_group]
+          cephadm adopt --style legacy --legacy-dir "{{ ceph_legacy_dir }}" --name "mgr.{{ item }}"
+      loop: "{{ groups[ceph_mon_group] }}"
       changed_when: false
 
     - name: Ceph mgr module enable cephadm

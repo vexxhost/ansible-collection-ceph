@@ -20,7 +20,7 @@
 
 - name: Adopt existing osds
   ansible.builtin.command:
-    cmd: cephadm adopt --style legacy --name "osd.{{ item }}"
+    cmd: cephadm adopt --style legacy --legacy-dir "{{ ceph_legacy_dir }}" --name "osd.{{ item }}"
   throttle: 1
   with_items: "{{ osd_list.stdout_lines }}"
   changed_when: false
