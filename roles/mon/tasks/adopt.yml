@@ -43,8 +43,8 @@
           changed_when: false
           failed_when: convert_status.rc > 1
 
-    - name: Assimilate existing configs
-      ansible.builtin.command: cephadm shell -- ceph config assimilate-conf -i /etc/ceph/ceph.conf
+    - name: Assimilate exists configs in `ceph.conf`
+      ansible.builtin.command: cephadm shell --fsid "{{ ceph_mon_fsid }}" -- ceph config assimilate-conf -i /etc/ceph/ceph.conf
       changed_when: false
 
     - name: Adopt monitor to cluster
