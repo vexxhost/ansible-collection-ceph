@@ -32,8 +32,6 @@
         mode: "0640"
       loop: "{{ ceph_mon_conf_overrides }}"
 
-    # TODO: match ceph version for image
-
     - name: Run Bootstrap coomand
       ansible.builtin.command:
         cmd: |
@@ -43,6 +41,7 @@
             --cluster-network {{ ceph_mon_cluster_network }}
             --ssh-user {{ cephadm_ssh_user }}
             --config {{ ceph_mon_conf_tempfile.path }}
+            --image {{ ceph_bootstrap_image }}
             --skip-monitoring-stack
       changed_when: false
 

@@ -15,6 +15,8 @@
 # User for SSH access
 cephadm_ssh_user: cephadm
 
+ceph_bootstrap_image: "quay.io/ceph/ceph:v{{ ceph_version | default('16.2.9') }}"
+
 # Inventory group for Ceph monitors
 ceph_mon_group: "{{ ceph_control_plane_group | default('controllers') }}"
 
