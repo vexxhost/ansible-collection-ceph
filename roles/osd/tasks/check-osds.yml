@@ -36,7 +36,7 @@
 
     - name: Fail if any duplicate OSD ID
       ansible.builtin.fail:
-      when: _osd_daemon_ids | unique | length != _osd_daemon_ids | length)
+      when: _osd_daemon_ids | unique | length != _osd_daemon_ids | length
 
   rescue:
     - name: Failed after retry
