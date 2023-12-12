@@ -41,8 +41,8 @@
   rescue:
     - name: Failed after retry
       ansible.builtin.fail:
-        msg: "Ended after {{ ceph_osd_check_retry | default(60) }} retries. Print `orch ps` status: {{ _orch_ps.stdout | from_json }}"
-      when: retry_count|int == (ceph_osd_check_retry | default(60))
+        msg: "Ended after {{ ceph_osd_check_retry | default(120) }} retries. Print `orch ps` status: {{ _orch_ps.stdout | from_json }}"
+      when: retry_count|int == (ceph_osd_check_retry | default(120))
 
     - name: Give 5 seconds pause before retry
       ansible.builtin.pause:
