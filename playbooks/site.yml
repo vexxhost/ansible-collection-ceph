@@ -20,6 +20,8 @@
     - role: cephadm
       tags:
         - cephadm
+  environment:
+    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('16.2.9'))) }}"
 
 - name: Deploy Ceph monitors & managers
   hosts: "{{ ceph_control_plane_group | default('controllers') }}"
@@ -31,6 +33,8 @@
     - role: mgr
       tags:
         - ceph-mgr
+  environment:
+    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('16.2.9'))) }}"
 
 - name: Deploy Ceph OSDs
   hosts: "{{ ceph_osd_group | default('cephs') }}"
@@ -39,3 +43,5 @@
     - role: osd
       tags:
         - ceph-osd
+  environment:
+    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('16.2.9'))) }}"

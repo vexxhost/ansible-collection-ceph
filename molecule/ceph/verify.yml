@@ -28,3 +28,5 @@
       ansible.builtin.assert:
         that:
           - _ceph_health.stdout == 'HEALTH_OK'
+  environment:
+    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('16.2.9'))) }}"
