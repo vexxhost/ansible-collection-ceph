@@ -21,7 +21,7 @@
       tags:
         - cephadm
   environment:
-    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('16.2.9'))) }}"
+    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('16.2.14'))) }}"
 
 - name: Deploy Ceph monitors & managers
   hosts: "{{ ceph_control_plane_group | default('controllers') }}"
@@ -34,7 +34,7 @@
       tags:
         - ceph-mgr
   environment:
-    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('16.2.9'))) }}"
+    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('16.2.14'))) }}"
 
 - name: Deploy Ceph OSDs
   hosts: "{{ ceph_osd_group | default('cephs') }}"
@@ -44,4 +44,4 @@
       tags:
         - ceph-osd
   environment:
-    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('16.2.9'))) }}"
+    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('16.2.14'))) }}"

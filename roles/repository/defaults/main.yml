@@ -13,7 +13,7 @@
 # under the License.
 
 # Ceph version to pin package manager to
-ceph_repository_version: "{{ ceph_version | default('16.2.9') }}"
+ceph_repository_version: "{{ ceph_version | default('16.2.14') }}"
 
 # Ceph APT repository URL
 ceph_repository_url: https://download.ceph.com/debian-{{ ceph_repository_version }}/
