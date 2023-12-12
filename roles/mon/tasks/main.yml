@@ -19,7 +19,7 @@
 - name: Check if any node is bootstrapped
   run_once: true
   ansible.builtin.stat:
-    path: "/var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[item]['inventory_hostname_short'] }}/store.db"
+    path: "/var/lib/ceph/{{ ceph_mon_fsid }}/mon.{{ hostvars[item]['inventory_hostname_short'] }}/store.db"
   register: _ceph_mon_stat
   loop: "{{ groups[ceph_mon_group] }}"
   delegate_to: "{{ item }}"

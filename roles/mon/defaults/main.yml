@@ -31,4 +31,4 @@ ceph_mon_cluster_network: "{{ ceph_cluster_network | default(ceph_mon_public_net
 # Make sure we plan to adopt exist cluster
 adopt_exists: "{{ ceph_adopt_exists | default(false) }}"
 is_adopt: false
-ceph_legacy_dir: "/var/lib/ceph/{{ ceph_fsid }}"
+ceph_legacy_dir: "/var/lib/ceph/{{ ceph_mon_fsid }}"
