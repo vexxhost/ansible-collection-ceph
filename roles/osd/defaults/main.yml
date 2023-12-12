@@ -23,3 +23,4 @@ ceph_mon_fsid: "{{ ceph_fsid }}"
 # Make sure we plan to adopt exist cluster
 adopt_exists: "{{ ceph_adopt_exists | default(false) }}"
 is_adopt: false
+ceph_legacy_dir: "/var/lib/ceph/{{ ceph_mon_fsid }}"
