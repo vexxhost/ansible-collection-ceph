@@ -24,7 +24,7 @@
 
     # current cluster is not cephadm backend, requires to convert to cephadm
     - name: Prepare hosts for cephadm backend
-      when: "'Backend: cephadm' not in orch_status_result.stdout"
+      when: "'No orchestrator configured' in orch_status_result.stderr"
       block:
         # This task requires all hosts to have cephadm ready in place
         - name: Run prepare host
@@ -32,16 +32,6 @@
           ansible.builtin.command: cephadm prepare-host
           loop: "{{ play_hosts }}"
           changed_when: false
-
-        - name: Wait for prepare host process complete
-          ansible.builtin.command: cephadm ls
-          register: convert_status
-          until: >
-            '"style": "legacy"' not in convert_status.stdout
-          retries: 120
-          delay: 5
-          changed_when: false
-          failed_when: convert_status.rc > 1
 
     - name: Assimilate exists configs in `ceph.conf`
       ansible.builtin.command: cephadm shell --fsid "{{ ceph_mon_fsid }}" -- ceph config assimilate-conf -i /etc/ceph/ceph.conf
@@ -51,7 +41,7 @@
       throttle: 1
       ansible.builtin.command:
         cmd: |
-          cephadm adopt --style legacy --legacy-dir "{{ ceph_legacy_dir }}" --name "mon.{{ item }}"
+          cephadm adopt --style legacy --name "mon.{{ item }}"
       loop: "{{ groups[ceph_mon_group] }}"
       changed_when: false
 
@@ -59,7 +49,7 @@
       throttle: 1
       ansible.builtin.command:
         cmd: |
-          cephadm adopt --style legacy --legacy-dir "{{ ceph_legacy_dir }}" --name "mgr.{{ item }}"
+          cephadm adopt --style legacy --name "mgr.{{ item }}"
       loop: "{{ groups[ceph_mon_group] }}"
       changed_when: false
 
@@ -78,13 +68,3 @@
     - name: Ceph cephadm generate-key
       ansible.builtin.command: cephadm shell -- ceph cephadm generate-key
       changed_when: false
-
-- name: Validate monitor adoption
-  ansible.builtin.command: cephadm shell -- ceph orch ps
-  register: ps_result
-  until: >
-    "mon.{{ inventory_hostname_short }}" in ps_result.stdout
-  retries: 120
-  delay: 5
-  changed_when: false
-  failed_when: ps_result.rc > 1

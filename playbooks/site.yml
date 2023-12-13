@@ -20,8 +20,6 @@
     - role: cephadm
       tags:
         - cephadm
-  environment:
-    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('16.2.14'))) }}"
 
 - name: Deploy Ceph monitors & managers
   hosts: "{{ ceph_control_plane_group | default('controllers') }}"

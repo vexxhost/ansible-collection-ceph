@@ -12,15 +12,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-- name: Get osd list for this host from cluster
-  ansible.builtin.command: |
-    cephadm shell -- ceph osd ls-tree {{ inventory_hostname_short }}
-  register: osd_list
+- name: Get `ceph-volume lvm list` status
+  ansible.builtin.command: cephadm shell -- ceph-volume lvm list --format json
+  register: ceph_lvm_stat
   changed_when: false
 
 - name: Adopt existing osds
   ansible.builtin.command:
-    cmd: cephadm adopt --style legacy --legacy-dir "{{ ceph_legacy_dir }}" --name "osd.{{ item }}"
+    cmd: cephadm adopt --style legacy --name "{{ item }}"
   throttle: 1
-  with_items: "{{ osd_list.stdout_lines }}"
+  when:
+    - ((ceph_lvm_stat.stdout | from_json)[(item | regex_search('osd.([0-9]*)', '\\1') | first)] | first)['lv_path'] in ceph_osd_devices
+  loop: "{{ cephadm_ls_stat.stdout | from_json | selectattr('style', 'equalto', 'legacy') | selectattr('name', 'search', 'osd') | map(attribute='name') }}"
   changed_when: false
