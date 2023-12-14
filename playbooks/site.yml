@@ -12,15 +12,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# This is required for in prepare-adopt under adoption cases
-- name: Deploy Cephadm
-  hosts: "{{ target | default('all') }}"
-  become: true
-  roles:
-    - role: cephadm
-      tags:
-        - cephadm
-
 - name: Deploy Ceph monitors & managers
   hosts: "{{ ceph_control_plane_group | default('controllers') }}"
   become: true
