@@ -29,13 +29,13 @@ jobs:
         version:
           - 16.2.14
           - 17.2.7
+          - 18.2.0
         scenario:
           - aio
           - ha
         distro:
           - ubuntu2004
-          # NOTE(mnaser): There are no Jammy packages for Ceph yet.
-          # - ubuntu2204
+          - ubuntu2204
     steps:
       - name: Checkout project
         uses: actions/checkout@v3

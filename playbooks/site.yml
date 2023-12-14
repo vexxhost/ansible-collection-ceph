@@ -23,7 +23,7 @@
       tags:
         - ceph-mgr
   environment:
-    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('16.2.14'))) }}"
+    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('18.2.0'))) }}"
 
 - name: Deploy Ceph OSDs
   hosts: "{{ ceph_osd_group | default('cephs') }}"
@@ -33,4 +33,4 @@
       tags:
         - ceph-osd
   environment:
-    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('16.2.14'))) }}"
+    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('18.2.0'))) }}"
