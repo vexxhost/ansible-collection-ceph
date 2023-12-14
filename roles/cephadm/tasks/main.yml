@@ -17,12 +17,6 @@
     name: ["openssh-server", "cephadm"]
     install_recommends: false
 
-- name: Install ceph-common packages
-  ansible.builtin.apt:
-    name: ["ceph-common"]
-    install_recommends: false
-  when: enable_ceph_common
-
 - name: Ensure SSHD is started
   ansible.builtin.service:
     name: sshd
