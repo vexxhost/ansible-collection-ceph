@@ -30,38 +30,44 @@
   ansible.builtin.set_fact:
     is_adopt: true
   when:
-    - "'osd' in (cephadm_ls_stat.stdout | from_json | selectattr('style', 'equalto', 'legacy') | to_json)"
+    - cephadm_ls_stat.stdout | from_json | selectattr('style', 'equalto', 'legacy') | selectattr('name', 'search', 'osd') | length > 0
     - adopt_exists
 
 - name: Select admin host
   ansible.builtin.set_fact:
-    _cephadm_host_admin_host: "{{ _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first }}"
-  when:
-    - _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | length > 0
-    - not is_adopt
+    _cephadm_host_admin_host: "{{ _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first | default(groups[ceph_osd_mons_group][0]) }}"  # yamllint disable-line rule:line-length
 
 - name: Install Ceph host
   ansible.builtin.include_role:
     name: vexxhost.ceph.cephadm_host
   vars:
-    cephadm_host_admin_host: "{{ _cephadm_host_admin_host | default(groups[ceph_osd_mons_group][0]) }}"
+    cephadm_host_admin_host: "{{ _cephadm_host_admin_host }}"
 
-- name: Adopt exists osds
+- name: Get `ceph-volume lvm list` status
+  run_once: true
+  ansible.builtin.command: cephadm shell -- ceph-volume lvm list --format json
+  register: ceph_lvm_stat
+  when: is_adopt
+  changed_when: false
+
+- name: Adopt exists OSDs
   ansible.builtin.include_tasks: adopt.yml
-  when:
-    - is_adopt
+  when: is_adopt
+  loop: "{{ cephadm_ls_stat.stdout | from_json | selectattr('style', 'equalto', 'legacy') | selectattr('name', 'search', 'osd') | map(attribute='name') }}"
+  loop_control:
+    loop_var: osd_name
 
 - name: Install OSDs
   throttle: 1
   changed_when: false
-  delegate_to: "{{ _cephadm_host_admin_host | default(groups[ceph_osd_mons_group][0]) }}"
+  delegate_to: "{{ _cephadm_host_admin_host }}"
   ansible.builtin.command:
     cmd: cephadm shell -- ceph orch daemon add osd {{ inventory_hostname_short }}:{{ item }}
   loop: "{{ ceph_osd_devices }}"
   when:
     - not is_adopt
 
-- name: Wait for all osd to be running
+- name: Wait for all OSD to be running
   ansible.builtin.include_tasks: check-osds.yml
   when:
     - inventory_hostname == groups[ceph_osd_osds_group] | last

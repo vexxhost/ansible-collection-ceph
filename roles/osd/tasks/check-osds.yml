@@ -19,21 +19,21 @@
         retry_count: "{{ 0 if retry_count is undefined else retry_count | int + 1 }}"
 
     - name: Get `ceph orch ps`
-      ansible.builtin.command: cephadm shell -- ceph orch ps --format json
+      ansible.builtin.command: cephadm shell -- ceph orch ps --daemon_type osd --format json
       register: _orch_ps
       delegate_to: "{{ _cephadm_host_admin_host | default(groups[ceph_osd_mons_group][0]) }}"
       changed_when: false
 
     - name: OSD daemon list
       ansible.builtin.set_fact:
-        _osd_daemons: "{{ _orch_ps.stdout | from_json | selectattr('daemon_type', 'equalto', 'osd') }}"
-        _osd_daemon_ids: "{{ _orch_ps.stdout | from_json | selectattr('daemon_type', 'equalto', 'osd') | map(attribute='daemon_id') }}"
+        _osd_daemons: "{{ _orch_ps.stdout | from_json }}"
+        _osd_daemon_ids: "{{ _orch_ps.stdout | from_json | map(attribute='daemon_id') }}"
 
     - name: Fail if any OSD not running
       ansible.builtin.fail:
       when:
         - item != 1
-        # Under adopt cases, osd might already in other status.
+        # Under adopt cases, OSD might already in other status.
         - not is_adopt
       loop: "{{ _osd_daemons | map(attribute='status') }}"
 
