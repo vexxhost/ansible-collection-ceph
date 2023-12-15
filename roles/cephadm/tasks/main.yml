@@ -14,8 +14,13 @@
 
 - name: Install packages
   ansible.builtin.apt:
-    name: ["openssh-server", "cephadm"]
+    name: ["openssh-server", "chrony", "cephadm"]
     install_recommends: false
+
+- name: Ensure Chrony is started
+  ansible.builtin.service:
+    name: chronyd
+    state: started
 
 - name: Ensure SSHD is started
   ansible.builtin.service:
