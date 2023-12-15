@@ -35,13 +35,29 @@
     - name: Run Bootstrap coomand
       ansible.builtin.command:
         cmd: |
-          cephadm bootstrap
+          timeout 600s cephadm bootstrap
             --fsid {{ ceph_mon_fsid }}
             --mon-ip {{ ceph_mon_ip_address }}
             --cluster-network {{ ceph_mon_cluster_network }}
             --ssh-user {{ cephadm_ssh_user }}
             --config {{ ceph_mon_conf_tempfile.path }}
             --skip-monitoring-stack
+      ignore_errors: true
+      changed_when: false
+
+    - name: Get Ceph log
+      ansible.builtin.command: find /var/log/ceph/ -type f -exec cat {} \;
+      ignore_errors: true
+      changed_when: false
+
+    - name: Get Cephadm log
+      ansible.builtin.command: cat /var/log/ceph/cephadm.log
+      ignore_errors: true
+      changed_when: false
+
+    - name: Get journalctl log
+      ansible.builtin.command: journalctl
+      ignore_errors: true
       changed_when: false
 
     - name: Add 'mon' label to host
