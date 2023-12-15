@@ -49,7 +49,7 @@
 
 - name: Select pre-existing bootstrap node if exists
   ansible.builtin.set_fact:
-    _ceph_mon_bootstrap_node: "{{ _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first | default(groups[ceph_mon_group][0])}}"  # yamllint disable-line rule:line-length
+    _ceph_mon_bootstrap_node: "{{ _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first | default(groups[ceph_mon_group][0]) }}"  # yamllint disable-line rule:line-length
 
 - name: Bootstrap cluster
   ansible.builtin.include_tasks: bootstrap-ceph.yml
