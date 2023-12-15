@@ -17,6 +17,10 @@
   register: cephadm_ls_stat
   changed_when: false
 
+- name: Check if host is prepared
+  ansible.builtin.command: cephadm prepare-host
+  changed_when: false
+
 - name: Get mon status
   run_once: true
   ansible.builtin.stat:

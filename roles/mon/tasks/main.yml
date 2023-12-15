@@ -29,6 +29,10 @@
   register: cephadm_ls_stat
   changed_when: false
 
+- name: Check if host is prepared
+  ansible.builtin.command: cephadm prepare-host
+  changed_when: false
+
 - name: Set flag for adopt
   run_once: true
   ansible.builtin.set_fact:
