@@ -21,5 +21,5 @@ ceph_mon_fsid: "{{ ceph_fsid }}"
 
 
 # Make sure we plan to adopt exist cluster
-adopt_exists: "{{ ceph_adopt_exists | default(false) }}"
+adopt_exists: "{{ ceph_adopt_exists | default(true) }}"
 is_adopt: false
