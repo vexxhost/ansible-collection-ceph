@@ -21,7 +21,46 @@ on:
       - main
 
 jobs:
-  test:
+  test-2204:
+    runs-on: v3-standard-8
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - 18.2.0
+        scenario:
+          - aio
+          - ha
+        distro:
+          - ubuntu2204
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install Molecule
+        run: pip install -r requirements.txt
+
+      # NOTE(mnaser): LVM commands take a long time if there are any existing
+      #               loop devices created by "snapd", so we uninstall it.
+      - name: Uninstall "snapd"
+        run: sudo apt-get purge -y snapd
+
+      - name: Generate random "fsid" using "uuidgen"
+        run: echo "MOLECULE_CEPH_FSID=$(uuidgen)" >> $GITHUB_ENV
+
+      - name: Run Molecule
+        run: molecule test -s ${{ matrix.scenario }}
+        env:
+          MOLECULE_CEPH_VERSION: ${{ matrix.version }}
+          MOLECULE_DISTRO: ${{ matrix.distro }}
+
+  test-2004:
     runs-on: v3-standard-8
     strategy:
       fail-fast: false
@@ -35,7 +74,6 @@ jobs:
           - ha
         distro:
           - ubuntu2004
-          - ubuntu2204
     steps:
       - name: Checkout project
         uses: actions/checkout@v3
