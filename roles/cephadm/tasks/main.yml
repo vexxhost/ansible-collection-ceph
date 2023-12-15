@@ -14,7 +14,7 @@
 
 - name: Install packages
   ansible.builtin.apt:
-    name: ["openssh-server", "cephadm"]
+    name: ["openssh-server", "cephadm", "chrony"]
     install_recommends: false
 
 - name: Ensure SSHD is started

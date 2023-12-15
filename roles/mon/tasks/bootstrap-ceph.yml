@@ -61,9 +61,6 @@
       ignore_errors: true
       changed_when: false
 
-    - name: Fail if bootstrap failed
-      ansible.builtin.fail:
-
     - name: Add 'mon' label to host
       changed_when: false
       ansible.builtin.command:
