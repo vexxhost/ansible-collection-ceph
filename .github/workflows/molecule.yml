@@ -138,6 +138,12 @@ jobs:
         run: echo "MOLECULE_CEPH_FSID=$(uuidgen)" >> $GITHUB_ENV
 
       - name: Run Molecule
+        run: molecule converge -s ${{ matrix.scenario }}
+        env:
+          MOLECULE_CEPH_VERSION: ${{ matrix.version }}
+          MOLECULE_DISTRO: ${{ matrix.distro }}
+
+      - name: Run Molecule
         run: molecule verify -s ${{ matrix.scenario }}
         env:
           MOLECULE_CEPH_VERSION: ${{ matrix.version }}
@@ -145,6 +151,9 @@ jobs:
 
       - name: Checkout current release
         uses: actions/checkout@v3
+
+      - name: Install Molecule
+        run: pip install -r requirements.txt
 
       - name: Run Molecule
         run: molecule test -s ${{ matrix.scenario }}
