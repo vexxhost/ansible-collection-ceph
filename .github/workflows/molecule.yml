@@ -156,7 +156,13 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run Molecule
-        run: molecule test -s ${{ matrix.scenario }}
+        run: molecule -vvvvv converge -s ${{ matrix.scenario }}
         env:
           MOLECULE_CEPH_VERSION: ${{ matrix.version }}
           MOLECULE_DISTRO: ${{ matrix.distro }}
+
+      - name: Run Molecule
+        run: molecule verify -s ${{ matrix.scenario }}
+        env:
+          MOLECULE_CEPH_VERSION: ${{ matrix.version }}
+          MOLECULE_DISTRO: ubuntu2004

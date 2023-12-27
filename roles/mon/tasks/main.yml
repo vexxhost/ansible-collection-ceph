@@ -26,7 +26,11 @@
 
 - name: Get `cephadm ls` status
   ansible.builtin.command: cephadm ls
+  ignore_errors: true
   register: cephadm_ls_stat
+  until: cephadm_ls_stat.stdout | from_json | length > 0
+  retries: 30
+  delay: 1
   changed_when: false
 
 - name: Set flag for adopt
