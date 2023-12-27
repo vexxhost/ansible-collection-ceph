@@ -38,6 +38,7 @@
 - name: Adopt OSDs to cluster
   throttle: 1
   when: item.style == "legacy"
+  changed_when: false
   ansible.builtin.command:
     cmd: cephadm adopt --style legacy --name "{{ item.name }}"
   loop: "{{ cephadm_info }}"

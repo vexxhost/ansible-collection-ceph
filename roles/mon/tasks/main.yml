@@ -31,11 +31,13 @@
     - name: Assimilate existing configs in `ceph.conf`
       run_once: true
       ansible.builtin.command: cephadm shell --fsid "{{ ceph_mon_fsid }}" -- ceph config assimilate-conf -i /etc/ceph/ceph.conf
+      changed_when: false
 
     - name: Adopt monitor to cluster
       throttle: 1
       ansible.builtin.command:
         cmd: cephadm adopt --style legacy --name "{{ cephadm_mon_info.name }}"
+      changed_when: false
 
 - name: Adopt manager
   when: cephadm_mgr_info.style == "legacy"
@@ -44,22 +46,27 @@
       throttle: 1
       ansible.builtin.command:
         cmd: cephadm adopt --style legacy --name "{{ cephadm_mgr_info.name }}"
+      changed_when: false
 
     - name: Enable "cephadm" mgr module
       run_once: true
       ansible.builtin.command: cephadm shell -- ceph mgr module enable cephadm
+      changed_when: false
 
     - name: Set orchestrator backend to "cephadm"
       run_once: true
       ansible.builtin.command: cephadm shell -- ceph orch set backend cephadm
+      changed_when: false
 
     - name: Use `cephadm` user for cephadm
       run_once: true
       ansible.builtin.command: cephadm shell -- ceph cephadm set-user cephadm
+      changed_when: false
 
     - name: Generate "cephadm" key
       run_once: true
       ansible.builtin.command: cephadm shell -- ceph cephadm generate-key
+      changed_when: false
 
 - name: Set Ceph Monitor IP address
   ansible.builtin.set_fact:
