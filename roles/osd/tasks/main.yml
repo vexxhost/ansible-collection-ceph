@@ -71,6 +71,6 @@
   loop: "{{ ceph_osd_devices }}"
 
 # - name: Wait for all OSD to be running
-#   ansible.builtin.include_tasks: check-osds.yml
-#   when:
-#     - inventory_hostname == groups[ceph_osd_osds_group] | last
+#  ansible.builtin.include_tasks: check-osds.yml
+#  when:
+#    - inventory_hostname == groups[ceph_osd_osds_group] | last

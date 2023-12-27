@@ -19,14 +19,16 @@
 
 - name: Parse the `cephadm ls` output
   ansible.builtin.set_fact:
-    cephadm_mon_info: "{{ cephadm_ls_stat.stdout | from_json | community.general.json_query(mon_query) | first }}"
-    cephadm_mgr_info: "{{ cephadm_ls_stat.stdout | from_json | community.general.json_query(mgr_query) | first }}"
+    cephadm_mon_info: "{{ cephadm_ls_stat.stdout | from_json | community.general.json_query(mon_query) }}"
+    cephadm_mgr_info: "{{ cephadm_ls_stat.stdout | from_json | community.general.json_query(mgr_query) }}"
   vars:
     mon_query: "[?name == 'mon.{{ inventory_hostname_short }}']"
     mgr_query: "[?name == 'mgr.{{ inventory_hostname_short }}']"
 
 - name: Adopt monitor
-  when: cephadm_mon_info.style == "legacy"
+  when:
+    - cephadm_mon_info | length > 0
+    - (cephadm_mon_info | first).style == "legacy"
   block:
     - name: Assimilate existing configs in `ceph.conf`
       run_once: true
@@ -36,16 +38,18 @@
     - name: Adopt monitor to cluster
       throttle: 1
       ansible.builtin.command:
-        cmd: cephadm adopt --style legacy --name "{{ cephadm_mon_info.name }}"
+        cmd: cephadm adopt --style legacy --name "{{ (cephadm_mon_info | first).name }}"
       changed_when: false
 
 - name: Adopt manager
-  when: cephadm_mgr_info.style == "legacy"
+  when:
+    - cephadm_mgr_info | length > 0
+    - (cephadm_mgr_info | first).style == "legacy"
   block:
     - name: Adopt manager to cluster
       throttle: 1
       ansible.builtin.command:
-        cmd: cephadm adopt --style legacy --name "{{ cephadm_mgr_info.name }}"
+        cmd: cephadm adopt --style legacy --name "{{ (cephadm_mgr_info | first).name }}"
       changed_when: false
 
     - name: Enable "cephadm" mgr module
