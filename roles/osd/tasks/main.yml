@@ -95,3 +95,16 @@
   ansible.builtin.include_tasks: check-osds.yml
   when:
     - inventory_hostname == groups[ceph_osd_osds_group] | last
+
+- name: Get mon dump
+  run_once: true
+  ansible.builtin.command: cephadm shell -- ceph mon dump --format json
+  register: _ceph_mon_dump
+  changed_when: false
+  delegate_to: "{{ _cephadm_host_admin_host }}"
+
+- name: Mark require osd release
+  run_once: true
+  ansible.builtin.command: cephadm shell -- ceph osd require-osd-release "{{ (_ceph_mon_dump.stdout | from_json)['min_mon_release_name'] }}"
+  changed_when: false
+  delegate_to: "{{ _cephadm_host_admin_host }}"
