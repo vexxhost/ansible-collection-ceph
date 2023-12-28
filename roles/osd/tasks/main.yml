@@ -50,6 +50,7 @@
   loop: "{{ cephadm_info }}"
   loop_control:
     label: "{{ item.name }}"
+    pause: 5
 
 - name: Wait until OSD added to cephadm
   when: item.style == "legacy"
@@ -90,7 +91,7 @@
     cmd: cephadm shell -- ceph orch daemon add osd {{ inventory_hostname_short }}:{{ item }}
   loop: "{{ ceph_osd_devices }}"
 
-# - name: Wait for all OSD to be running
-#  ansible.builtin.include_tasks: check-osds.yml
-#  when:
-#    - inventory_hostname == groups[ceph_osd_osds_group] | last
+- name: Wait for all OSD to be running
+  ansible.builtin.include_tasks: check-osds.yml
+  when:
+    - inventory_hostname == groups[ceph_osd_osds_group] | last
