@@ -33,8 +33,6 @@
       ansible.builtin.fail:
       when:
         - item != 1
-        # Under adopt cases, OSD might already in other status.
-        - not is_adopt
       loop: "{{ _osd_daemons | map(attribute='status') }}"
 
     - name: Fail if any duplicate OSD ID
