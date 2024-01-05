@@ -1,6 +1,6 @@
 namespace: vexxhost
 name: ceph
-version: 2.2.0 # x-release-please-version
+version: 3.0.0 # x-release-please-version
 readme: README.md
 authors:
   - Mohammed Naser <mnaser@vexxhost.com>
