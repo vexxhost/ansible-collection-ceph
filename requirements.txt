@@ -1,4 +1,5 @@
 ansible-core
+docker-image-py
 jmespath
 molecule
 molecule-plugins[docker]

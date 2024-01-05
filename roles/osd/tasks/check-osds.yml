@@ -1,0 +1,53 @@
+# Copyright (c) 2023 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+- name: Wait until OSD daemons are all running
+  block:
+    - name: Set the retry count
+      ansible.builtin.set_fact:
+        retry_count: "{{ 0 if retry_count is undefined else retry_count | int + 1 }}"
+
+    - name: Get `ceph orch ps`
+      ansible.builtin.command: cephadm shell -- ceph orch ps --daemon_type osd --format json
+      register: _orch_ps
+      delegate_to: "{{ _cephadm_host_admin_host | default(groups[ceph_osd_mons_group][0]) }}"
+      changed_when: false
+
+    - name: OSD daemon list
+      ansible.builtin.set_fact:
+        _osd_daemons: "{{ _orch_ps.stdout | from_json }}"
+        _osd_daemon_ids: "{{ _orch_ps.stdout | from_json | map(attribute='daemon_id') }}"
+
+    - name: Fail if any OSD not running
+      ansible.builtin.fail:
+      when:
+        - item != 1
+      loop: "{{ _osd_daemons | map(attribute='status') }}"
+
+    - name: Fail if any duplicate OSD ID
+      ansible.builtin.fail:
+      when: _osd_daemon_ids | unique | length != _osd_daemon_ids | length
+
+  rescue:
+    - name: Failed after retry
+      ansible.builtin.fail:
+        msg: "Ended after {{ ceph_osd_check_retry | default(120) }} retries. Print `orch ps` status: {{ _orch_ps.stdout | from_json }}"
+      when: retry_count|int == (ceph_osd_check_retry | default(120))
+
+    - name: Give 5 seconds pause before retry
+      ansible.builtin.pause:
+        seconds: 5
+
+    - name: Recheck OSDs
+      ansible.builtin.include_tasks: check-osds.yml

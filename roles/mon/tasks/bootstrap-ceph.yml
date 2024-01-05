@@ -1,4 +1,4 @@
-# Copyright (c) 2022 VEXXHOST, Inc.
+# Copyright (c) 2023 VEXXHOST, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -12,99 +12,49 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# TODO(mnaser): Move to using vexxhost.atmosphere.ceph_key
-- name: Create monitor keyring
-  ansible.builtin.command:
-    ceph-authtool --gen-key --create-keyring
-                  --name mon.
-                  --cap mon 'allow *'
-                  /tmp/ceph.mon.keyring
-  args:
-    creates: /tmp/ceph.mon.keyring
+- name: Bootstrap Ceph cluster
   when:
     - inventory_hostname == groups[ceph_mon_group][0]
+  block:
+    - name: Generate temporary file for "ceph.conf"
+      ansible.builtin.tempfile:
+        state: file
+        prefix: ceph_
+        suffix: .conf
+      register: ceph_mon_conf_tempfile
 
-# TODO(mnaser): Move to using vexxhost.atmosphere.ceph_key
-- name: Create admin keyring
-  ansible.builtin.command:
-    ceph-authtool --gen-key --create-keyring
-                  --name client.admin
-                  --cap mon 'allow *'
-                  --cap osd 'allow *'
-                  --cap mds 'allow *'
-                  --cap mgr 'allow *'
-                  /etc/ceph/ceph.client.admin.keyring
-  args:
-    creates: /etc/ceph/ceph.client.admin.keyring
-  when:
-    - inventory_hostname == groups[ceph_mon_group][0]
+    - name: Include extra configuration values
+      ansible.builtin.ini_file:
+        path: "{{ ceph_mon_conf_tempfile.path }}"
+        section: "{{ item.section }}"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        mode: "0640"
+      loop: "{{ ceph_mon_conf_overrides }}"
 
-# TODO(mnaser): Move to using vexxhost.atmosphere.ceph_key
-- name: Create bootstrap-osd keyring
-  ansible.builtin.command:
-    ceph-authtool --gen-key --create-keyring
-                  --name client.bootstrap-osd
-                  --cap mon 'profile bootstrap-osd'
-                  --cap mgr 'allow r'
-                  /var/lib/ceph/bootstrap-osd/ceph.keyring
-  args:
-    creates: /var/lib/ceph/bootstrap-osd/ceph.keyring
-  when:
-    - inventory_hostname == groups[ceph_mon_group][0]
+    - name: Run Bootstrap coomand
+      ansible.builtin.command:
+        cmd: |
+          cephadm bootstrap
+            --fsid {{ ceph_mon_fsid }}
+            --mon-ip {{ ceph_mon_ip_address }}
+            --cluster-network {{ ceph_mon_cluster_network }}
+            --ssh-user {{ cephadm_ssh_user }}
+            --config {{ ceph_mon_conf_tempfile.path }}
+            --skip-monitoring-stack
+      changed_when: false
 
-# TODO(mnaser): Move to using vexxhost.atmosphere.ceph_key
-- name: Add admin keyring to monitor
-  changed_when: true
-  ansible.builtin.command:
-    ceph-authtool --import-keyring /etc/ceph/ceph.client.admin.keyring
-                  /tmp/ceph.mon.keyring
-  when:
-    - inventory_hostname == groups[ceph_mon_group][0]
+    - name: Add 'mon' label to host
+      changed_when: false
+      ansible.builtin.command:
+        cmd: cephadm shell -- ceph orch host label add {{ inventory_hostname_short }} mon
 
-# TODO(mnaser): Move to using vexxhost.atmosphere.ceph_key
-- name: Add bootstrap-osd keyring to monitor
-  changed_when: true
-  ansible.builtin.command:
-    ceph-authtool --import-keyring /var/lib/ceph/bootstrap-osd/ceph.keyring
-                  /tmp/ceph.mon.keyring
-  when:
-    - inventory_hostname == groups[ceph_mon_group][0]
-
-- name: Create monmap
-  ansible.builtin.command:
-    monmaptool --create
-               --fsid {{ ceph_mon_fsid }}
-               --add {{ inventory_hostname_short }} {{ ceph_mon_ip_address }}
-               /tmp/monmap
-  args:
-    creates: /tmp/monmap
-  when:
-    - inventory_hostname == groups[ceph_mon_group][0]
-
-- name: Create monitor folder
-  ansible.builtin.file:
-    path: "/var/lib/ceph/mon/ceph-{{ inventory_hostname_short }}"
-    state: directory
-    owner: ceph
-    group: ceph
-    mode: "0700"
-  when:
-    - inventory_hostname == groups[ceph_mon_group][0]
-
-- name: Configure mon initial members
-  community.general.ini_file:
-    path: /etc/ceph/ceph.conf
-    section: global
-    option: mon initial members
-    value: "{{ inventory_hostname_short }}"
-    owner: ceph
-    group: ceph
-    mode: "0640"
-
-- name: Start monitor
-  ansible.builtin.include_tasks: start-monitor.yml
-  when:
-    - inventory_hostname == groups[ceph_mon_group][0]
+  always:
+    - name: Remove temporary file for "ceph.conf"
+      ansible.builtin.file:
+        path: "{{ ceph_mon_conf_tempfile.path }}"
+        state: absent
+      when: ceph_mon_conf_tempfile.path is defined
 
 - name: Set bootstrap node
   ansible.builtin.set_fact:

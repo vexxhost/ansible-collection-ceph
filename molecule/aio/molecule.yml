@@ -32,6 +32,7 @@ platforms:
       - /lib/modules:/lib/modules:ro
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
       - /usr/src:/usr/src:ro
+      - /var/lib/docker
     groups:
       - controllers
       - cephs
@@ -44,7 +45,7 @@ provisioner:
     group_vars:
       all:
         ceph_fsid: ${MOLECULE_CEPH_FSID:-"1dff0e0f-3c44-48da-81cd-4f3c6e8722b2"}
-        ceph_version: ${MOLECULE_CEPH_VERSION:-"16.2.9"}
+        ceph_version: ${MOLECULE_CEPH_VERSION:-"18.2.1"}
         ceph_conf_overrides:
           - section: global
             option: osd crush chooseleaf type

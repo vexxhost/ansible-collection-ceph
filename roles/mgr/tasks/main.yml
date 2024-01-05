@@ -12,39 +12,26 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-- name: Install packages
-  ansible.builtin.apt:
-    name: ["ceph-mgr"]
-    install_recommends: false
+- name: Install Ceph host
+  ansible.builtin.include_role:
+    name: vexxhost.ceph.cephadm_host
+  vars:
+    cephadm_host_admin_host: "{{ _ceph_mon_bootstrap_node | default(groups[ceph_mon_group][0]) }}"
+    cephadm_host_labels:
+      - _admin
+      - mgr
 
-- name: Create manager folder
-  ansible.builtin.file:
-    path: "/var/lib/ceph/mgr/ceph-{{ inventory_hostname_short }}"
-    state: directory
-    owner: ceph
-    group: ceph
-    mode: "0700"
+- name: Configure "mgr" label for managers
+  changed_when: false
+  delegate_to: "{{ _ceph_mon_bootstrap_node | default(groups[ceph_mon_group][0]) }}"
+  run_once: true
+  ansible.builtin.command:
+    cmd: cephadm shell -- ceph orch apply mgr --placement="label:mgr"
 
-- name: Create Ceph manager keyring
-  vexxhost.ceph.key:
-    name: "mgr.{{ inventory_hostname_short }}"
-    dest: "/var/lib/ceph/mgr/ceph-{{ inventory_hostname_short }}/keyring"
-    caps:
-      mon: allow profile mgr
-      osd: allow *
-      mds: allow *
-    owner: ceph
-    group: ceph
-
-- name: Ensure permissions are fixed
-  ansible.builtin.file:
-    path: "/var/lib/ceph/mon/ceph-{{ inventory_hostname_short }}"
-    owner: ceph
-    group: ceph
-    recurse: true
-
-- name: Enable and start service
-  ansible.builtin.service:
-    name: "ceph-mgr@{{ inventory_hostname_short }}"
-    state: started
-    enabled: true
+- name: Validate manager exist
+  ansible.builtin.command: cephadm shell -- ceph orch ps --daemon_type mgr --hostname "{{ inventory_hostname_short }}"
+  register: ps_result
+  until: ps_result.stdout | length > 0
+  retries: "{{ ceph_mon_check_retry | default(120) }}"
+  delay: 3
+  changed_when: false

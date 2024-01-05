@@ -1,0 +1,44 @@
+# Copyright (c) 2023 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+- name: Install packages
+  ansible.builtin.apt:
+    name: ["openssh-server", "chrony", "cephadm"]
+    install_recommends: false
+
+- name: Ensure Chrony is started
+  ansible.builtin.service:
+    name: chronyd
+    state: started
+
+- name: Ensure SSHD is started
+  ansible.builtin.service:
+    name: sshd
+    state: started
+
+- name: Ensure "cephadm" user is present
+  ansible.builtin.user:
+    name: cephadm
+    shell: /bin/bash
+    create_home: true
+
+- name: Allow "cephadm" user to have passwordless sudo
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers.d/cephadm
+    owner: root
+    group: root
+    mode: '0440'
+    create: true
+    line: "cephadm ALL=(ALL) NOPASSWD:ALL"
+    validate: 'visudo -cf %s'

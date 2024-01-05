@@ -17,7 +17,7 @@
   become: true
   tasks:
     - name: Get cluster health status
-      ansible.builtin.command: ceph health
+      ansible.builtin.command: cephadm shell -- ceph health
       register: _ceph_health
 
     - name: Print cluster health status
@@ -28,3 +28,5 @@
       ansible.builtin.assert:
         that:
           - _ceph_health.stdout == 'HEALTH_OK'
+  environment:
+    CEPHADM_IMAGE: "quay.io/ceph/ceph:v{{ ceph_version }}"

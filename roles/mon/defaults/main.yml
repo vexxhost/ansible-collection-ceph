@@ -12,6 +12,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+# User for SSH access
+cephadm_ssh_user: cephadm
+
 # Inventory group for Ceph monitors
 ceph_mon_group: "{{ ceph_control_plane_group | default('controllers') }}"
 
