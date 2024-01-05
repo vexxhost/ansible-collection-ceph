@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.0.0](https://github.com/vexxhost/ansible-collection-ceph/compare/v2.2.0...v3.0.0) (2024-01-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* use cephadm support ([#15](https://github.com/vexxhost/ansible-collection-ceph/issues/15))
+
+### Bug Fixes
+
+* grant proper permissioins to gh token ([#21](https://github.com/vexxhost/ansible-collection-ceph/issues/21)) ([5ee3574](https://github.com/vexxhost/ansible-collection-ceph/commit/5ee3574fc392a254bed3345b74deefbdf6c217ee))
+
+
+### Code Refactoring
+
+* use cephadm support ([#15](https://github.com/vexxhost/ansible-collection-ceph/issues/15)) ([a6113f8](https://github.com/vexxhost/ansible-collection-ceph/commit/a6113f8e1632ee0809836960f2a95563105785c0))
+
 ## [2.2.0](https://github.com/vexxhost/ansible-collection-ceph/compare/v2.1.0...v2.2.0) (2023-10-18)
 
 
