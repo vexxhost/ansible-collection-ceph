@@ -18,14 +18,14 @@ def run_module():
 
     changed = False
 
-    _, out, _ = module.run_command(["ceph", "config", "get", who, name], check_rc=True)
+    _, out, _ = module.run_command(["cephadm", "shell", "--", "ceph", "config", "get", who, name], check_rc=True)
 
     if out.strip() != value:
         changed = True
 
     if not module.check_mode:
         _, _, _ = module.run_command(
-            ["ceph", "config", "set", who, name, value], check_rc=True
+            ["cephadm", "shell", "--", "ceph", "config", "set", who, name, value], check_rc=True
         )
 
     module.exit_json(changed=changed)

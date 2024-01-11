@@ -171,12 +171,11 @@ def check_pool_exist(
 
 
 def generate_get_config_cmd(param, cluster, user, user_key, container_image=None):
-    _cmd = pre_generate_ceph_cmd(container_image=container_image)
+    base_cmd = ["-k", user_key]
+    _cmd = pre_generate_ceph_cmd(container_image=container_image, base_cmd=base_cmd)
     args = [
         "-n",
         user,
-        "-k",
-        user_key,
         "--cluster",
         cluster,
         "config",

@@ -271,7 +271,7 @@ def generate_ceph_authtool_cmd(
         binary = "ceph-authtool"
         cmd = container_exec(binary, container_image)
     else:
-        binary = ["ceph-authtool"]
+        binary = ["cephadm", "shell", "-k","dest", "--", "ceph-authtool"]
         cmd = binary
 
     base_cmd = [
