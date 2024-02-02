@@ -96,7 +96,6 @@
 - name: Install Ceph host
   ansible.builtin.include_role:
     name: vexxhost.ceph.cephadm_host
-  when: (inventory_hostname != _ceph_mon_bootstrap_node) or (_ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | length > 0)
   vars:
     cephadm_host_admin_host: "{{ _ceph_mon_bootstrap_node }}"
     cephadm_host_labels:
