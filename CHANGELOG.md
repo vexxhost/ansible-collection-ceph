@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/vexxhost/ansible-collection-ceph/compare/v3.0.0...v3.0.1) (2024-02-05)
+
+
+### Miscellaneous Chores
+
+* release 3.0.1 ([2cc8da4](https://github.com/vexxhost/ansible-collection-ceph/commit/2cc8da4065b915a40413f42ae02cda9dc7b57b6d))
+
 ## [3.0.0](https://github.com/vexxhost/ansible-collection-ceph/compare/v2.2.0...v3.0.0) (2024-01-05)
 
 
