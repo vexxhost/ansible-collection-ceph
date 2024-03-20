@@ -19,7 +19,7 @@
         retry_count: "{{ 0 if retry_count is undefined else retry_count | int + 1 }}"
 
     - name: Get `ceph orch ps`
-      ansible.builtin.command: cephadm shell -- ceph orch ps --daemon_type osd --format json
+      ansible.builtin.command: cephadm --image "{{ CEPHADM_IMAGE }}" shell -- ceph orch ps --daemon_type osd --format json
       register: _orch_ps
       delegate_to: "{{ _cephadm_host_admin_host | default(groups[ceph_osd_mons_group][0]) }}"
       changed_when: false

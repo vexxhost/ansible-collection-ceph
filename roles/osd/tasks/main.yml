@@ -25,7 +25,7 @@
     _cephadm_host_admin_host: "{{ _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first | default(groups[ceph_osd_mons_group][0]) }}"  # yamllint disable-line rule:line-length
 
 - name: Get `cephadm ls` status
-  ansible.builtin.command: cephadm ls
+  ansible.builtin.command: cephadm --image "{{ CEPHADM_IMAGE }}" ls
   register: cephadm_ls_stat
   changed_when: false
 
@@ -46,7 +46,7 @@
   when: item.style == "legacy"
   changed_when: false
   ansible.builtin.command:
-    cmd: cephadm adopt --style legacy --name "{{ item.name }}"
+    cmd: cephadm --image "{{ CEPHADM_IMAGE }}" adopt --style legacy --name "{{ item.name }}"
   loop: "{{ cephadm_info }}"
   loop_control:
     label: "{{ item.name }}"
@@ -54,7 +54,7 @@
 
 - name: Wait until OSD added to cephadm
   when: item.style == "legacy"
-  ansible.builtin.command: cephadm shell -- ceph orch ps --daemon_type osd --format json
+  ansible.builtin.command: cephadm --image "{{ CEPHADM_IMAGE }}" shell -- ceph orch ps --daemon_type osd --format json
   register: _orch_osd_ps
   delegate_to: "{{ _cephadm_host_admin_host }}"
   until: item.name in (_orch_osd_ps.stdout | from_json | map(attribute='daemon_name'))
@@ -67,7 +67,7 @@
 
 - name: Ensure all OSDs are non-legacy
   ansible.builtin.command:
-    cmd: cephadm ls
+    cmd: cephadm --image "{{ CEPHADM_IMAGE }}" ls
   changed_when: false
   register: cephadm_ls_stat
   until: cephadm_ls_stat.stdout | from_json | community.general.json_query(osd_query) | selectattr('style', 'equalto', 'legacy') | list | length == 0  # noqa: yaml[line-length]
@@ -78,7 +78,7 @@
 
 - name: Get `ceph-volume lvm list` status
   run_once: true
-  ansible.builtin.command: cephadm shell -- ceph-volume lvm list --format json
+  ansible.builtin.command: cephadm --image "{{ CEPHADM_IMAGE }}" shell -- ceph-volume lvm list --format json
   register: ceph_lvm_stat
   changed_when: false
 
@@ -88,19 +88,19 @@
   when: item not in ceph_lvm_stat.stdout
   delegate_to: "{{ _cephadm_host_admin_host }}"
   ansible.builtin.command:
-    cmd: cephadm shell -- ceph orch daemon add osd {{ inventory_hostname_short }}:{{ item }}
+    cmd: cephadm --image "{{ CEPHADM_IMAGE }}" shell -- ceph orch daemon add osd {{ inventory_hostname_short }}:{{ item }}
   loop: "{{ ceph_osd_devices }}"
 
 - name: Get mon dump
   run_once: true
-  ansible.builtin.command: cephadm shell -- ceph mon dump --format json
+  ansible.builtin.command: cephadm --image "{{ CEPHADM_IMAGE }}" shell -- ceph mon dump --format json
   register: _ceph_mon_dump
   changed_when: false
   delegate_to: "{{ _cephadm_host_admin_host }}"
 
 - name: Mark require osd release
   run_once: true
-  ansible.builtin.command: cephadm shell -- ceph osd require-osd-release "{{ (_ceph_mon_dump.stdout | from_json)['min_mon_release_name'] }}"
+  ansible.builtin.command: cephadm --image "{{ CEPHADM_IMAGE }}" shell -- ceph osd require-osd-release "{{ (_ceph_mon_dump.stdout | from_json)['min_mon_release_name'] }}"
   changed_when: false
   delegate_to: "{{ _cephadm_host_admin_host }}"
 

@@ -20,3 +20,5 @@ cephadm_host_labels: []
 
 ceph_mon_public_network: "{{ ceph_public_network | default('0.0.0.0/0') }}"
 ceph_mon_cluster_network: "{{ ceph_cluster_network | default(ceph_mon_public_network) }}"
+
+cephadm_image: "quay.io/ceph/ceph:v{{ ceph_version | default('18.2.1') }}"

@@ -17,7 +17,7 @@
   become: true
   tasks:
     - name: Get cluster health status
-      ansible.builtin.command: cephadm shell -- ceph health
+      ansible.builtin.command: cephadm --image "{{ CEPHADM_IMAGE }}" shell -- ceph health
       register: _ceph_health
 
     - name: Print cluster health status
