@@ -13,7 +13,7 @@
 # under the License.
 
 - name: Get `cephadm ls` status
-  ansible.builtin.command: cephadm --image "{{ CEPHADM_IMAGE }}" ls
+  ansible.builtin.command: cephadm --image "{{ cephadm_image }}" ls
   register: cephadm_ls_stat
   changed_when: false
 
@@ -32,13 +32,13 @@
   block:
     - name: Assimilate existing configs in `ceph.conf`
       run_once: true
-      ansible.builtin.command: cephadm --image "{{ CEPHADM_IMAGE }}" shell --fsid "{{ ceph_mon_fsid }}" -- ceph config assimilate-conf -i /etc/ceph/ceph.conf
+      ansible.builtin.command: cephadm --image "{{ cephadm_image }}" shell --fsid "{{ ceph_mon_fsid }}" -- ceph config assimilate-conf -i /etc/ceph/ceph.conf
       changed_when: false
 
     - name: Adopt monitor to cluster
       throttle: 1
       ansible.builtin.command:
-        cmd: cephadm --image "{{ CEPHADM_IMAGE }}" adopt --style legacy --name "{{ (cephadm_mon_info | first).name }}"
+        cmd: cephadm --image "{{ cephadm_image }}" adopt --style legacy --name "{{ (cephadm_mon_info | first).name }}"
       changed_when: false
 
 - name: Adopt manager
@@ -49,27 +49,27 @@
     - name: Adopt manager to cluster
       throttle: 1
       ansible.builtin.command:
-        cmd: cephadm --image "{{ CEPHADM_IMAGE }}" adopt --style legacy --name "{{ (cephadm_mgr_info | first).name }}"
+        cmd: cephadm --image "{{ cephadm_image }}" adopt --style legacy --name "{{ (cephadm_mgr_info | first).name }}"
       changed_when: false
 
     - name: Enable "cephadm" mgr module
       run_once: true
-      ansible.builtin.command: cephadm --image "{{ CEPHADM_IMAGE }}" shell -- ceph mgr module enable cephadm
+      ansible.builtin.command: cephadm --image "{{ cephadm_image }}" shell --fsid "{{ ceph_mon_fsid }}" -- ceph mgr module enable cephadm
       changed_when: false
 
     - name: Set orchestrator backend to "cephadm"
       run_once: true
-      ansible.builtin.command: cephadm --image "{{ CEPHADM_IMAGE }}" shell -- ceph orch set backend cephadm
+      ansible.builtin.command: cephadm --image "{{ cephadm_image }}" shell --fsid "{{ ceph_mon_fsid }}" -- ceph orch set backend cephadm
       changed_when: false
 
     - name: Use `cephadm` user for cephadm
       run_once: true
-      ansible.builtin.command: cephadm --image "{{ CEPHADM_IMAGE }}" shell -- ceph cephadm set-user cephadm
+      ansible.builtin.command: cephadm --image "{{ cephadm_image }}" shell --fsid "{{ ceph_mon_fsid }}" -- ceph cephadm set-user cephadm
       changed_when: false
 
     - name: Generate "cephadm" key
       run_once: true
-      ansible.builtin.command: cephadm --image "{{ CEPHADM_IMAGE }}" shell -- ceph cephadm generate-key
+      ansible.builtin.command: cephadm --image "{{ cephadm_image }}" shell --fsid "{{ ceph_mon_fsid }}" -- ceph cephadm generate-key
       changed_when: false
 
 - name: Set Ceph Monitor IP address
@@ -106,11 +106,17 @@
   delegate_to: "{{ _ceph_mon_bootstrap_node }}"
   run_once: true
   changed_when: false
-  ansible.builtin.command:
-    cmd: cephadm --image "{{ CEPHADM_IMAGE }}" shell -- ceph orch apply mon --placement="label:mon"
+  ansible.builtin.command: |
+    cephadm --image "{{ cephadm_image }}" shell
+      --fsid "{{ ceph_mon_fsid }}"
+      --config "/var/lib/ceph/{{ ceph_mon_fsid }}/mon.{{ hostvars[_ceph_mon_bootstrap_node]['inventory_hostname_short'] }}/config"
+      -- ceph orch apply mon --placement="label:mon"
 
 - name: Validate monitor exist
-  ansible.builtin.command: cephadm --image "{{ CEPHADM_IMAGE }}" shell -- ceph orch ps --daemon_type mon --hostname "{{ inventory_hostname_short }}"
+  ansible.builtin.command: |
+    cephadm --image "{{ cephadm_image }}" shell
+      --fsid "{{ ceph_mon_fsid }}"
+      -- ceph orch ps --daemon_type mon --hostname "{{ inventory_hostname_short }}"
   register: ps_result
   until: ps_result.stdout | length > 0
   retries: "{{ ceph_mon_check_retry | default(120) }}"

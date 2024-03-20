@@ -16,20 +16,28 @@
   ansible.builtin.include_role:
     name: vexxhost.ceph.cephadm_host
   vars:
-    cephadm_host_admin_host: "{{ _ceph_mon_bootstrap_node | default(groups[ceph_mon_group][0]) }}"
+    cephadm_host_admin_host: "{{ _ceph_mon_bootstrap_node }}"
     cephadm_host_labels:
       - _admin
       - mgr
 
+# (rico) As mon and mgr technically the same node, we pick mon config as it's earier to target.
 - name: Configure "mgr" label for managers
   changed_when: false
-  delegate_to: "{{ _ceph_mon_bootstrap_node | default(groups[ceph_mon_group][0]) }}"
+  delegate_to: "{{ _ceph_mon_bootstrap_node }}"
   run_once: true
-  ansible.builtin.command:
-    cmd: cephadm --image "{{ CEPHADM_IMAGE }}" shell -- ceph orch apply mgr --placement="label:mgr"
+  ansible.builtin.command: |
+    cephadm --image "{{ cephadm_image }}" shell
+      --fsid "{{ ceph_mon_fsid }}"
+      --config "/var/lib/ceph/{{ ceph_mon_fsid }}/mon.{{ hostvars[_ceph_mon_bootstrap_node]['inventory_hostname_short'] }}/config"
+      -- ceph orch apply mgr --placement="label:mgr"
 
 - name: Validate manager exist
-  ansible.builtin.command: cephadm --image "{{ CEPHADM_IMAGE }}" shell -- ceph orch ps --daemon_type mgr --hostname "{{ inventory_hostname_short }}"
+  ansible.builtin.command: |
+    cephadm --image "{{ cephadm_image }}" shell
+      --fsid "{{ ceph_mon_fsid }}"
+      --config "/var/lib/ceph/{{ ceph_mon_fsid }}/mon.{{ inventory_hostname_short }}/config"
+      -- ceph orch ps --daemon_type mgr --hostname "{{ inventory_hostname_short }}"
   register: ps_result
   until: ps_result.stdout | length > 0
   retries: "{{ ceph_mon_check_retry | default(120) }}"
