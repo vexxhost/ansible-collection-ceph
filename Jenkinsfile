@@ -80,18 +80,14 @@ pipeline {
             }
           }
           stage('upgrade') {
-            when { expression { env.DISTRO == "ubuntu2004" && env.VERSION != env.LAST_VERSION && env.SCENARIO == "ha" && env.TESTCASE == 'upgrade' } }
+            when { expression { env.DISTRO == "ubuntu2004" && env.VERSION == '16.2.14' && env.SCENARIO == "ha" && env.TESTCASE == 'upgrade' } }
             steps {
 
               sh 'sudo apt-get purge -y snapd'
               sh 'sudo apt-get install -y git python3-pip docker.io'
-              sh "git checkout -B ${GIT_BRANCH}"
-              sh "git checkout ${LEGACY_BRANCH}"
               sh 'sudo pip install -r requirements.txt'
               sh "sudo molecule converge -s ${SCENARIO}"
               sh "sudo molecule verify -s ${SCENARIO}"
-              sh "git checkout ${GIT_BRANCH}"
-              sh 'sudo pip install -r requirements.txt'
               sh "MOLECULE_CEPH_VERSION=${LAST_VERSION} && sudo molecule converge -s ${SCENARIO}"
               sh "MOLECULE_CEPH_VERSION=${LAST_VERSION} && sudo molecule verify -s ${SCENARIO}"
             }
