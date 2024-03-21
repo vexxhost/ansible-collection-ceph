@@ -30,7 +30,7 @@ pipeline {
         }
 
         agent {
-          label 'jammy-16c-64g'
+          label 'jammy-2c-8g'
         }
 
         environment {
