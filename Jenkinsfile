@@ -43,7 +43,7 @@ pipeline {
               // Install dependencies
               sh 'sudo apt-get purge -y snapd'
               sh 'sudo apt-get install -y git python3-pip docker.io'
-              sh 'sudo pip install -r requirement.txt'
+              sh 'sudo pip install -r requirements.txt'
               sh "sudo molecule test -s ${SCENARIO}"
             }
           }
@@ -54,7 +54,7 @@ pipeline {
               // Install dependencies
               sh 'sudo apt-get purge -y snapd'
               sh 'sudo apt-get install -y git python3-pip docker.io'
-              sh 'sudo pip install -r requirement.txt'
+              sh 'sudo pip install -r requirements.txt'
               sh "sudo molecule test -s ${SCENARIO}"
             }
           }
@@ -66,11 +66,11 @@ pipeline {
               sh 'sudo apt-get purge -y snapd'
               sh 'sudo apt-get install -y git python3-pip docker.io'
               sh "git checkout ${LEGACY_BRANCH}"
-              sh 'sudo pip install -r requirement.txt'
+              sh 'sudo pip install -r requirements.txt'
               sh "sudo molecule converge -s ${SCENARIO}"
               sh "sudo molecule verify -s ${SCENARIO}"
               sh "git checkout ${GIT_BRANCH}"
-              sh 'sudo pip install -r requirement.txt'
+              sh 'sudo pip install -r requirements.txt'
               sh "sudo molecule converge -s ${SCENARIO}"
               sh "sudo molecule verify -s ${SCENARIO}"
             }
@@ -83,11 +83,11 @@ pipeline {
               sh 'sudo apt-get purge -y snapd'
               sh 'sudo apt-get install -y git python3-pip docker.io'
               sh "git checkout ${LEGACY_BRANCH}"
-              sh 'sudo pip install -r requirement.txt'
+              sh 'sudo pip install -r requirements.txt'
               sh "sudo molecule converge -s ${SCENARIO}"
               sh "sudo molecule verify -s ${SCENARIO}"
               sh "git checkout ${GIT_BRANCH}"
-              sh 'sudo pip install -r requirement.txt'
+              sh 'sudo pip install -r requirements.txt'
               sh "MOLECULE_CEPH_VERSION=${LAST_VERSION} && sudo molecule converge -s ${SCENARIO}"
               sh "MOLECULE_CEPH_VERSION=${LAST_VERSION} && sudo molecule verify -s ${SCENARIO}"
             }
