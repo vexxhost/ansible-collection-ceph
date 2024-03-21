@@ -54,7 +54,7 @@
 
     - name: Enable "cephadm" mgr module
       run_once: true
-      ansible.builtin.command: cephadm --image "{{ cephadm_image }}" shell --fsid "{{ ceph_mon_fsid }}" -- ceph mgr module enable cephadm
+      ansible.builtin.command: cephadm --image "{{ cephadm_image }}" shell --fsid "{{ ceph_mon_fsid }}" -- ceph mgr module enable cephadm --force
       changed_when: false
 
     - name: Set orchestrator backend to "cephadm"
