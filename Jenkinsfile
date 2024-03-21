@@ -11,7 +11,9 @@ pipeline {
         axes {
           axis {
             name 'SCENARIO'
-            values 'ha', 'aio'
+            values 'ha'
+            // TODO reduce resources per case so we can run them all
+            //values 'ha', 'aio'
           }
           axis {
             name 'VERSION'
@@ -20,6 +22,10 @@ pipeline {
           axis {
             name 'DISTRO'
             values 'ubuntu2004', 'ubuntu2204'
+          }
+          axis {
+            name 'TESTCASE'
+            values 'general', 'adopt', 'upgrade'
           }
         }
 
@@ -32,15 +38,14 @@ pipeline {
           MOLECULE_CEPH_VERSION="${VERSION}"
           MOLECULE_DISTRO="${DISTRO}"
           LAST_VERSION="18.2.1"
-          LEGACY_BRANCH="v2.2.0"
+          LEGACY_BRANCH="d9bef03f7166d263bfa9059b869de0d7e867015e" //"v2.2.0"
         }
 
         stages {
           stage('ubuntu2204') {
-            when { expression { env.DISTRO == "ubuntu2204" && env.VERSION == env.LAST_VERSION } }
+            when { expression { env.DISTRO == "ubuntu2204" && env.VERSION == env.LAST_VERSION && env.TESTCASE == 'general' } }
             steps {
 
-              // Install dependencies
               sh 'sudo apt-get purge -y snapd'
               sh 'sudo apt-get install -y git python3-pip docker.io'
               sh 'sudo pip install -r requirements.txt'
@@ -48,10 +53,9 @@ pipeline {
             }
           }
           stage('ubuntu2004') {
-            when { expression { env.DISTRO == "ubuntu2004" } }
+            when { expression { env.DISTRO == "ubuntu2004" && env.TESTCASE == 'general' } }
             steps {
 
-              // Install dependencies
               sh 'sudo apt-get purge -y snapd'
               sh 'sudo apt-get install -y git python3-pip docker.io'
               sh 'sudo pip install -r requirements.txt'
@@ -59,10 +63,10 @@ pipeline {
             }
           }
           stage('adopt') {
-            when { expression { env.DISTRO == "ubuntu2004" && env.VERSION != env.LAST_VERSION && env.SCENARIO == "ha" } }
+            when { expression { env.DISTRO == "ubuntu2004" && env.VERSION != env.LAST_VERSION && env.SCENARIO == "ha" && env.TESTCASE == 'adopt' } }
             steps {
 
-              // Install dependencies
+              sh "git checkout -B ${GIT_BRANCH}"
               sh 'sudo apt-get purge -y snapd'
               sh 'sudo apt-get install -y git python3-pip docker.io'
               sh "git checkout ${LEGACY_BRANCH}"
@@ -76,12 +80,12 @@ pipeline {
             }
           }
           stage('upgrade') {
-            when { expression { env.DISTRO == "ubuntu2004" && env.VERSION != env.LAST_VERSION && env.SCENARIO == "ha" } }
+            when { expression { env.DISTRO == "ubuntu2004" && env.VERSION != env.LAST_VERSION && env.SCENARIO == "ha" && env.TESTCASE == 'upgrade' } }
             steps {
 
-              // Install dependencies
               sh 'sudo apt-get purge -y snapd'
               sh 'sudo apt-get install -y git python3-pip docker.io'
+              sh "git checkout -B ${GIT_BRANCH}"
               sh "git checkout ${LEGACY_BRANCH}"
               sh 'sudo pip install -r requirements.txt'
               sh "sudo molecule converge -s ${SCENARIO}"
