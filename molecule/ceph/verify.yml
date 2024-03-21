@@ -17,8 +17,8 @@
   become: true
   tasks:
     - name: Get cluster health status
-      ansible.builtin.command: cephadm --image "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('18.2.1'))) }}"
-" shell -- ceph health
+      ansible.builtin.command: |
+        cephadm --image "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('18.2.1'))) }}" shell -- ceph health
       register: _ceph_health
 
     - name: Print cluster health status
