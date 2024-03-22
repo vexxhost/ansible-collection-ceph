@@ -1,84 +1,103 @@
-def lastCephVersion = "18.2.1"
-def legacyBranch="d9bef03f7166d263bfa9059b869de0d7e867015e" //"v2.2.0"
-def fsid = "${UUID.randomUUID().toString()}"
-def operatingSystems = ['ubuntu2004', 'ubuntu2204']
-def previousCephVersions = ['16.2.14', '17.2.7']
-def scenarios = ['ha', 'aio']
-def testcase = ['general', 'adopt']
+pipeline {
+  agent none
 
-def integrationJobs = [:]
-// Test for all non-last version install and upgrade to latest
-previousCephVersions.each { cephVersion ->
-    scenarios.each { scenario ->
-        integrationJobs["ubuntu2004-${cephVersion}-${scenario}-with-upgrade"] = {
-            node('jammy-2c-8g') {
-                checkout scm
-                sh 'sudo apt-get purge -y snapd'
-                sh 'sudo apt-get install -y git python3-pip docker.io'
-                sh 'sudo pip install -r requirements.txt'
-                withEnv([
-                    "MOLECULE_CEPH_FSID=${fsid}",
-                    "MOLECULE_CEPH_VERSION=${cephVersion}",
-                    "MOLECULE_DISTRO=ubuntu2004"
-                ]) {
-                    sh "sudo molecule test -s ${scenario}"
-                }
-                withEnv([
-                    "MOLECULE_CEPH_FSID=${fsid}",
-                    "MOLECULE_CEPH_VERSION=${lastCephVersion}",
-                    "MOLECULE_DISTRO=ubuntu2004"
-                ]) {
-                    sh "sudo molecule converge -s ${scenario}"
-                    sh "sudo molecule verify -s ${scenario}"
-                }
-            }
-        }
-    }
-}
-// Test latest version
-operatingSystems.each { operatingSystem ->
-    scenarios.each { scenario ->
-        integrationJobs["${operatingSystem}-${lastCephVersion}-${scenario}-latest"] = {
-            node('jammy-2c-8g') {
-                checkout scm
-                sh 'sudo apt-get purge -y snapd'
-                sh 'sudo apt-get install -y git python3-pip docker.io'
-                sh 'sudo pip install -r requirements.txt'
-                withEnv([
-                    "MOLECULE_CEPH_FSID=${fsid}",
-                    "MOLECULE_CEPH_VERSION=${lastCephVersion}",
-                    "MOLECULE_DISTRO=${operatingSystem}"
-                ]) {
-                    sh "sudo molecule test -s ${scenario}"
-                }
-            }
-        }
-    }
-}
+  options {
+    disableConcurrentBuilds(abortPrevious: true);
+  }
 
-// Test for previous versions with adopt
-previousCephVersions.each { cephVersion ->
-    integrationJobs["ubuntu2004-${cephVersion}-ha-adopt-legacy"] = {
-        node('jammy-16c-64g') {
-            checkout scm
-            sh "git checkout ${legacyBranch}"
-            sh 'sudo apt-get purge -y snapd'
-            sh 'sudo apt-get install -y git python3-pip docker.io'
-            sh 'sudo pip install -r requirements.txt'
-            withEnv([
-                "MOLECULE_CEPH_FSID=${fsid}",
-                "MOLECULE_CEPH_VERSION=${cephVersion}",
-                "MOLECULE_DISTRO=ubuntu2004"
-            ]) {
-                sh "sudo molecule converge -s ha"
-                sh "sudo molecule verify -s ha"
-                checkout scm
-                sh 'sudo pip install -r requirements.txt'
-                sh "sudo molecule converge -s ha"
-                sh "sudo molecule verify -s ha"
-            }
+  stages {
+    stage('integration') {
+      matrix {
+        axes {
+          axis {
+            name 'SCENARIO'
+            values 'ha'
+            //values 'ha', 'aio'
+            // TODO reduce resources per case so we can run them all
+          }
+          axis {
+            name 'VERSION'
+            values '16.2.14', '17.2.7', '18.2.1'
+          }
+          axis {
+            name 'DISTRO'
+            values 'ubuntu2004', 'ubuntu2204'
+          }
+          axis {
+            name 'TESTCASE'
+            values 'general', 'adopt'
+          }
         }
-    }
-}
 
-parallel integrationJobs
+        agent {
+          label 'jammy-2c-8g'
+        }
+
+        environment {
+          MOLECULE_CEPH_FSID=UUID.randomUUID().toString()
+          MOLECULE_CEPH_VERSION="${VERSION}"
+          MOLECULE_DISTRO="${DISTRO}"
+          LAST_VERSION="18.2.1"
+          LEGACY_BRANCH="d9bef03f7166d263bfa9059b869de0d7e867015e" //"v2.2.0"
+          BUILD_RESULT_ON_FAILURE = "${TESTCASE == 'adopt' ? 'SUCCESS' : 'FAILURE'}"
+          STAGE_RESULT_ON_FAILURE = "${TESTCASE == 'adopt' ? 'UNSTABLE' : 'FAILURE'}"
+        }
+
+        stages {
+          // Install, verify
+          stage('ubuntu2204') {
+            when { expression { env.DISTRO == "ubuntu2204" && env.VERSION == env.LAST_VERSION && env.TESTCASE == 'general' } }
+            steps {
+
+              sh 'sudo apt-get purge -y snapd'
+              sh 'sudo apt-get install -y git python3-pip docker.io'
+              sh 'sudo pip install -r requirements.txt'
+              sh "sudo molecule test -s ${SCENARIO}"
+            }
+          }
+          stage('ubuntu2004') {
+            when { expression { env.DISTRO == "ubuntu2004" && env.TESTCASE == 'general' } }
+            steps {
+
+              sh 'sudo apt-get purge -y snapd'
+              sh 'sudo apt-get install -y git python3-pip docker.io'
+              sh 'sudo pip install -r requirements.txt'
+              sh "sudo molecule test -s ${SCENARIO}"
+            }
+          }
+          // upgrade and verify
+          stage('upgrade') {
+            when { expression { env.DISTRO == "ubuntu2004" && env.VERSION != env.LAST_VERSION && env.SCENARIO == "ha" && env.TESTCASE == 'general' } }
+            steps {
+              sh "MOLECULE_CEPH_VERSION=${LAST_VERSION} && sudo molecule converge -s ${SCENARIO}"
+              sh "MOLECULE_CEPH_VERSION=${LAST_VERSION} && sudo molecule verify -s ${SCENARIO}"
+            }
+          }
+          // adopt from legacy environment to cephadm env.
+          stage('adopt') {
+            when { expression { env.DISTRO == "ubuntu2004" && env.VERSION != env.LAST_VERSION && env.SCENARIO == "ha" && env.TESTCASE == 'adopt' } }
+            agent {
+              label 'jammy-16c-32g'
+            }
+            steps {
+              catchError(buildResult: "${BUILD_RESULT_ON_FAILURE}", stageResult: "${STAGE_RESULT_ON_FAILURE}") {
+                  sh "git checkout -B ${GIT_BRANCH}"
+                  sh 'sudo apt-get purge -y snapd'
+                  sh 'sudo apt-get install -y git python3-pip docker.io'
+                  sh "git checkout ${LEGACY_BRANCH}"
+                  sh 'sudo pip install -r requirements.txt'
+                  sh "sudo molecule converge -s ${SCENARIO}"
+                  sh "sudo molecule verify -s ${SCENARIO}"
+                  sh "git checkout ${GIT_BRANCH}"
+                  sh 'sudo pip install -r requirements.txt'
+                  sh "sudo molecule converge -s ${SCENARIO}"
+                  sh "sudo molecule verify -s ${SCENARIO}"
+              }
+
+            }
+          }
+        }
+      }
+    }
+  }
+}
