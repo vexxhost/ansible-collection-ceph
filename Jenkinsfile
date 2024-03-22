@@ -39,6 +39,8 @@ pipeline {
           MOLECULE_DISTRO="${DISTRO}"
           LAST_VERSION="18.2.1"
           LEGACY_BRANCH="d9bef03f7166d263bfa9059b869de0d7e867015e" //"v2.2.0"
+          BUILD_RESULT_ON_FAILURE = "${TESTCASE == 'adopt' ? 'SUCCESS' : 'FAILURE'}"
+          STAGE_RESULT_ON_FAILURE = "${TESTCASE == 'adopt' ? 'UNSTABLE' : 'FAILURE'}"
         }
 
         stages {
@@ -65,18 +67,20 @@ pipeline {
           stage('adopt') {
             when { expression { env.DISTRO == "ubuntu2004" && env.VERSION != env.LAST_VERSION && env.SCENARIO == "ha" && env.TESTCASE == 'adopt' } }
             steps {
+              catchError(buildResult: "${BUILD_RESULT_ON_FAILURE}", stageResult: "${STAGE_RESULT_ON_FAILURE}") {
+                  sh "git checkout -B ${GIT_BRANCH}"
+                  sh 'sudo apt-get purge -y snapd'
+                  sh 'sudo apt-get install -y git python3-pip docker.io'
+                  sh "git checkout ${LEGACY_BRANCH}"
+                  sh 'sudo pip install -r requirements.txt'
+                  sh "sudo molecule converge -s ${SCENARIO}"
+                  sh "sudo molecule verify -s ${SCENARIO}"
+                  sh "git checkout ${GIT_BRANCH}"
+                  sh 'sudo pip install -r requirements.txt'
+                  sh "sudo molecule converge -s ${SCENARIO}"
+                  sh "sudo molecule verify -s ${SCENARIO}"
+              }
 
-              sh "git checkout -B ${GIT_BRANCH}"
-              sh 'sudo apt-get purge -y snapd'
-              sh 'sudo apt-get install -y git python3-pip docker.io'
-              sh "git checkout ${LEGACY_BRANCH}"
-              sh 'sudo pip install -r requirements.txt'
-              sh "sudo molecule converge -s ${SCENARIO}"
-              sh "sudo molecule verify -s ${SCENARIO}"
-              sh "git checkout ${GIT_BRANCH}"
-              sh 'sudo pip install -r requirements.txt'
-              sh "sudo molecule converge -s ${SCENARIO}"
-              sh "sudo molecule verify -s ${SCENARIO}"
             }
           }
           stage('upgrade') {
