@@ -12,8 +12,8 @@ pipeline {
           axis {
             name 'SCENARIO'
             values 'ha'
-            // TODO reduce resources per case so we can run them all
             //values 'ha', 'aio'
+            // TODO reduce resources per case so we can run them all
           }
           axis {
             name 'VERSION'
@@ -25,7 +25,7 @@ pipeline {
           }
           axis {
             name 'TESTCASE'
-            values 'general', 'adopt', 'upgrade'
+            values 'general', 'adopt'
           }
         }
 
@@ -44,6 +44,7 @@ pipeline {
         }
 
         stages {
+          // Install, verify
           stage('ubuntu2204') {
             when { expression { env.DISTRO == "ubuntu2204" && env.VERSION == env.LAST_VERSION && env.TESTCASE == 'general' } }
             steps {
@@ -64,8 +65,20 @@ pipeline {
               sh "sudo molecule test -s ${SCENARIO}"
             }
           }
+          // upgrade and verify
+          stage('upgrade') {
+            when { expression { env.DISTRO == "ubuntu2004" && env.VERSION != env.LAST_VERSION && env.SCENARIO == "ha" && env.TESTCASE == 'general' } }
+            steps {
+              sh "MOLECULE_CEPH_VERSION=${LAST_VERSION} && sudo molecule converge -s ${SCENARIO}"
+              sh "MOLECULE_CEPH_VERSION=${LAST_VERSION} && sudo molecule verify -s ${SCENARIO}"
+            }
+          }
+          // adopt from legacy environment to cephadm env.
           stage('adopt') {
             when { expression { env.DISTRO == "ubuntu2004" && env.VERSION != env.LAST_VERSION && env.SCENARIO == "ha" && env.TESTCASE == 'adopt' } }
+            agent {
+              label 'jammy-16c-32g'
+            }
             steps {
               catchError(buildResult: "${BUILD_RESULT_ON_FAILURE}", stageResult: "${STAGE_RESULT_ON_FAILURE}") {
                   sh "git checkout -B ${GIT_BRANCH}"
@@ -83,20 +96,6 @@ pipeline {
 
             }
           }
-          stage('upgrade') {
-            when { expression { env.DISTRO == "ubuntu2004" && env.VERSION == '16.2.14' && env.SCENARIO == "ha" && env.TESTCASE == 'upgrade' } }
-            steps {
-
-              sh 'sudo apt-get purge -y snapd'
-              sh 'sudo apt-get install -y git python3-pip docker.io'
-              sh 'sudo pip install -r requirements.txt'
-              sh "sudo molecule converge -s ${SCENARIO}"
-              sh "sudo molecule verify -s ${SCENARIO}"
-              sh "MOLECULE_CEPH_VERSION=${LAST_VERSION} && sudo molecule converge -s ${SCENARIO}"
-              sh "MOLECULE_CEPH_VERSION=${LAST_VERSION} && sudo molecule verify -s ${SCENARIO}"
-            }
-          }
-
         }
       }
     }
