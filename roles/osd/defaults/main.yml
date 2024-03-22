@@ -18,3 +18,4 @@ ceph_osd_osds_group: "{{ ceph_osd_group | default('cephs') }}"
 
 # Filesystem ID
 ceph_mon_fsid: "{{ ceph_fsid }}"
+cephadm_image: "quay.io/ceph/ceph:v{{ ceph_version | default('18.2.1') }}"
