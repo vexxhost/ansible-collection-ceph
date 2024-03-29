@@ -126,3 +126,33 @@
   ansible.builtin.include_tasks: check-osds.yml
   when:
     - inventory_hostname == groups[ceph_osd_osds_group] | last
+
+- name: Make sure `/var/lib/cron` directory exists
+  ansible.builtin.file:
+    path: /var/lib/cron
+    state: directory
+
+- name: Prepare Cronjob script for collect Bluestore fragmentation score
+  when: ceph_bluestore_frag_collect
+  ansible.builtin.template:
+    src: "bs-frag-score.sh.j2"
+    dest: "/var/lib/cron/bs-frag-score.sh"
+    owner: root
+    group: root
+    mode: u+rwx,g=,o=
+
+- name: Prepare Cronjob script for collect Bluestore fragmentation score
+  when: ceph_bluestore_frag_collect
+  ansible.builtin.template:
+    src: "prom-bs-frag-score-collector.sh.j2"
+    dest: "/var/lib/cron/prom-bs-frag-score-collector.sh"
+    owner: root
+    group: root
+    mode: u+rwx,g=,o=
+
+- name: Setup Cron job collect Bluestore fragmentation score for Prometheus
+  when: ceph_bluestore_frag_collect
+  ansible.builtin.cron:
+    name: "collect bluestore fragmentation score"
+    minute: "1"
+    job: "/var/lib/cron/prom-bs-frag-score-collector.sh"
