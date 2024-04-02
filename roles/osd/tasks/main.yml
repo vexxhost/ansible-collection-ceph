@@ -131,6 +131,7 @@
   ansible.builtin.file:
     path: /var/lib/cron
     state: directory
+    mode: '0644'
 
 - name: Prepare Cronjob script for collect Bluestore fragmentation score
   when: ceph_bluestore_frag_collect
