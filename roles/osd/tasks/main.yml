@@ -128,6 +128,7 @@
     - inventory_hostname == groups[ceph_osd_osds_group] | last
 
 - name: Make sure `/var/lib/cron` directory exists
+  when: ceph_bluestore_frag_collect
   ansible.builtin.file:
     path: /var/lib/cron
     state: directory
@@ -154,6 +155,6 @@
 - name: Setup Cron job collect Bluestore fragmentation score for Prometheus
   when: ceph_bluestore_frag_collect
   ansible.builtin.cron:
-    name: "collect bluestore fragmentation score"
+    name: "Collect bluestore fragmentation score"
     minute: "1"
     job: "/var/lib/cron/prom-bs-frag-score-collector.sh"

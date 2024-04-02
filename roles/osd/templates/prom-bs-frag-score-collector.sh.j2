@@ -1,15 +1,19 @@
 #!/bin/bash
 # {{ ansible_managed }}
 
+export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin"
 export TMPFILE=/tmp/bluestore_allocator_score_block.prom.$$
+
+echo "# TYPE bluestore_allocator_score_block gauge" > $TMPFILE
+
 osd_path=$(find /var/lib/ceph/{{ ceph_mon_fsid }}/ -type d -name "osd.*"|  head -n 1)
-if [ -z $osd_path ]; then
+if [ ! -z $osd_path ]; then
     cephadm --image "{{ cephadm_image }}" shell --fsid "{{ ceph_mon_fsid }}" \
       --config "$osd_path/config" \
-      -m /var/lib/cron/bs-frag-score.sh -- ./mnt/bs-frag-score.sh > TMPFILE
+      -m /var/lib/cron/bs-frag-score.sh -- ./mnt/bs-frag-score.sh >> $TMPFILE
 else
     cephadm --image "{{ cephadm_image }}" shell --fsid "{{ ceph_mon_fsid }}" \
-      -m /var/lib/cron/bs-frag-score.sh -- ./mnt/bs-frag-score.sh > TMPFILE
+      -m /var/lib/cron/bs-frag-score.sh -- ./mnt/bs-frag-score.sh >> $TMPFILE
 fi
 
 mv $TMPFILE /tmp/bluestore_allocator_score_block.prom

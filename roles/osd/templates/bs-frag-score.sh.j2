@@ -1,4 +1,4 @@
 #!/bin/bash
 # {{ ansible_managed }}
 
-ceph-volume lvm list|grep "osd id" |grep -o [0-9]*| xargs -i sh -c 'echo bluestore_allocator_score_block{osd=osd.{}} $(ceph daemon osd.{} bluestore allocator score block | grep fragmentation_rating|cut -d ':' -f2) $(date +%s)'
+ceph-volume lvm list|grep "osd id" |grep -o [0-9]*| xargs -i sh -c 'echo bluestore_allocator_score_block{osd=\"osd.{}\"} $(ceph daemon osd.{} bluestore allocator score block | grep fragmentation_rating|cut -d ':' -f2)'
