@@ -22,7 +22,7 @@ on:
 
 jobs:
   test-2204:
-    runs-on: v3-standard-8
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -61,7 +61,7 @@ jobs:
           MOLECULE_DISTRO: ${{ matrix.distro }}
 
   test-2004:
-    runs-on: v3-standard-8
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -102,7 +102,7 @@ jobs:
           MOLECULE_DISTRO: ${{ matrix.distro }}
 
   adopt:
-    runs-on: v3-standard-8
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -168,7 +168,7 @@ jobs:
           MOLECULE_DISTRO: ${{ matrix.distro }}
 
   upgrade:
-    runs-on: v3-standard-8
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
