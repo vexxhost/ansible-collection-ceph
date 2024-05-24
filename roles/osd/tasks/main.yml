@@ -81,7 +81,6 @@
     osd_query: "[?starts_with(name, 'osd.')]"
 
 - name: Get `ceph-volume lvm list` status
-  run_once: true
   ansible.builtin.command: cephadm shell -- ceph-volume lvm list --format json
   register: ceph_lvm_stat
   changed_when: false
