@@ -3,6 +3,7 @@
 
 - hosts: all
   roles:
+    - ensure-docker
     - ensure-pip
     - ensure-virtualenv
 
