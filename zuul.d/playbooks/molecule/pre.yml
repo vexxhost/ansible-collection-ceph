@@ -9,9 +9,8 @@
 
     - name: Install Molecule
       ansible.builtin.pip:
-        requirements: "{{ zuul.project.src_dir }}/requirements.txt"
-      vars:
-        zuul_work_dir: "{{ zuul.project.src_dir }}"
+        chdir: "{{ zuul.project.src_dir }}"
+        requirements: requirements.txt
 
     - name: Uninstall "snapd"
       become: true
