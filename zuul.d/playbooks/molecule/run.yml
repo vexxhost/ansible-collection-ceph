@@ -10,6 +10,8 @@
     - name: Run Molecule
       become: true
       ansible.builtin.command: molecule test -s {{ molecule_scenario }}
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
       environment:
         PATH: "{{ ansible_user_dir }}/.venv/bin:{{ ansible_env.PATH }}"
         MOLECULE_DISTRO: "{{ molecule_distro }}"
