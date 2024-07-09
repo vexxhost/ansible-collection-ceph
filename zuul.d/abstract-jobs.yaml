@@ -1,4 +1,4 @@
-# Copyright (c) 2023 VEXXHOST, Inc.
+# Copyright (c) 2024 VEXXHOST, Inc.
 # SPDX-License-Identifier: Apache-2.0
 
 - job:
@@ -32,3 +32,9 @@
     parent: ansible-collection-ceph-molecule-ha
     abstract: true
     run: zuul.d/playbooks/molecule/adopt.yml
+
+- job:
+    name: ansible-collection-ceph-molecule-ha-upgrade
+    parent: ansible-collection-ceph-molecule-ha
+    abstract: true
+    run: zuul.d/playbooks/molecule/upgrade.yml

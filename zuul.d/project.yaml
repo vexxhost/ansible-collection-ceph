@@ -1,4 +1,4 @@
-# Copyright (c) 2023 VEXXHOST, Inc.
+# Copyright (c) 2024 VEXXHOST, Inc.
 # SPDX-License-Identifier: Apache-2.0
 
 - project:
@@ -17,6 +17,8 @@
         - ansible-collection-ceph-molecule-ha-ubuntu-focal-quincy
         - ansible-collection-ceph-molecule-ha-ubuntu-focal-reef
         - ansible-collection-ceph-molecule-ha-ubuntu-jammy-reef
+        - ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-pacific
+        - ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-quincy
     gate:
       jobs:
         - ansible-collection-ceph-molecule-aio-adopt-ubuntu-focal-pacific
@@ -31,3 +33,5 @@
         - ansible-collection-ceph-molecule-ha-ubuntu-focal-quincy
         - ansible-collection-ceph-molecule-ha-ubuntu-focal-reef
         - ansible-collection-ceph-molecule-ha-ubuntu-jammy-reef
+        - ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-pacific
+        - ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-quincy

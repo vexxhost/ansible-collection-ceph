@@ -3,16 +3,6 @@
 
 - hosts: all
   tasks:
-    - name: Stash the current change
-      ansible.builtin.command: git stash
-      args:
-        chdir: "{{ zuul.project.src_dir }}"
-
-    - name: Checkout pre-cephadm branch
-      ansible.builtin.command: git checkout v2.2.0
-      args:
-        chdir: "{{ zuul.project.src_dir }}"
-
     - name: Generate random "fsid" using "uuidgen"
       ansible.builtin.command: uuidgen
       register: fsid
@@ -25,7 +15,7 @@
       environment:
         PATH: "{{ ansible_user_dir }}/.venv/bin:{{ ansible_env.PATH }}"
         MOLECULE_DISTRO: "{{ molecule_distro }}"
-        MOLECULE_CEPH_VERSION: "{{ ceph_version }}"
+        MOLECULE_CEPH_VERSION: "{{ previous_ceph_version }}"
         MOLECULE_CEPH_FSID: "{{ fsid.stdout | trim }}"
 
     - name: Verify Ceph cluster
@@ -36,24 +26,8 @@
       environment:
         PATH: "{{ ansible_user_dir }}/.venv/bin:{{ ansible_env.PATH }}"
         MOLECULE_DISTRO: "{{ molecule_distro }}"
-        MOLECULE_CEPH_VERSION: "{{ ceph_version }}"
+        MOLECULE_CEPH_VERSION: "{{ previous_ceph_version }}"
         MOLECULE_CEPH_FSID: "{{ fsid.stdout | trim }}"
-
-    - name: Restore the current changes
-      ansible.builtin.command: git restore .
-      args:
-        chdir: "{{ zuul.project.src_dir }}"
-
-    - name: Checkout the current branch
-      ansible.builtin.command: git checkout {{ zuul.branch }}
-      args:
-        chdir: "{{ zuul.project.src_dir }}"
-
-    - name: Stash pop the current changes
-      ansible.builtin.command: git stash pop
-      args:
-        chdir: "{{ zuul.project.src_dir }}"
-      ignore_errors: true
 
     - name: Converge Molecule
       become: true

@@ -1,4 +1,4 @@
-# Copyright (c) 2023 VEXXHOST, Inc.
+# Copyright (c) 2024 VEXXHOST, Inc.
 # SPDX-License-Identifier: Apache-2.0
 
 - job:
@@ -83,4 +83,22 @@
     parent: ansible-collection-ceph-molecule-ha
     vars:
       molecule_distro: ubuntu2204
+      ceph_version: 18.2.2
+
+# Upgrade jobs
+
+- job:
+    name: ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-quincy
+    parent: ansible-collection-ceph-molecule-ha-upgrade
+    vars:
+      molecule_distro: ubuntu2004
+      previous_ceph_version: 17.2.7
+      ceph_version: 18.2.2
+
+- job:
+    name: ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-pacific
+    parent: ansible-collection-ceph-molecule-ha-upgrade
+    vars:
+      molecule_distro: ubuntu2004
+      previous_ceph_version: 16.2.15
       ceph_version: 18.2.2
