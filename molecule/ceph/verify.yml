@@ -20,7 +20,6 @@
       ansible.builtin.command: |
         cephadm shell
           --fsid "{{ ceph_fsid }}"
-          --config "/var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[_cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
           -- ceph health
       register: _ceph_health
 

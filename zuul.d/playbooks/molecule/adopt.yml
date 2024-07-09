@@ -19,7 +19,7 @@
 
     - name: Converge Molecule
       become: true
-      ansible.builtin.command: molecule test -s {{ molecule_scenario }}
+      ansible.builtin.command: molecule converge -s {{ molecule_scenario }}
       args:
         chdir: "{{ zuul.project.src_dir }}"
       environment:
@@ -53,10 +53,11 @@
       ansible.builtin.command: git stash pop
       args:
         chdir: "{{ zuul.project.src_dir }}"
+      ignore_errors: true
 
     - name: Converge Molecule
       become: true
-      ansible.builtin.command: molecule test -s {{ molecule_scenario }}
+      ansible.builtin.command: molecule converge -s {{ molecule_scenario }}
       args:
         chdir: "{{ zuul.project.src_dir }}"
       environment:

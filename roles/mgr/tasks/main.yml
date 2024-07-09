@@ -28,14 +28,14 @@
   ansible.builtin.command: |
     cephadm shell
       --fsid "{{ ceph_mgr_fsid }}"
-      --config "/var/lib/ceph/{{ ceph_mgr_fsid }}/mon.{{ hostvars[_cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
+      --config "/var/lib/ceph/{{ ceph_mgr_fsid }}/mon.{{ hostvars[_ceph_mon_bootstrap_node]['inventory_hostname_short'] }}/config"
       -- ceph orch apply mgr --placement="label:mgr"
 
 - name: Validate manager exist
   ansible.builtin.command: |
     cephadm shell
       --fsid "{{ ceph_mgr_fsid }}"
-      --config "/var/lib/ceph/{{ ceph_mgr_fsid }}/mon.{{ hostvars[_cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
+      --config "/var/lib/ceph/{{ ceph_mgr_fsid }}/mon.{{ hostvars[_ceph_mon_bootstrap_node]['inventory_hostname_short'] }}/config"
       -- ceph orch ps --daemon_type mgr --hostname "{{ inventory_hostname_short }}"
   register: ps_result
   until: ps_result.stdout | length > 0

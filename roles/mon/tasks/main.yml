@@ -109,14 +109,14 @@
   ansible.builtin.command: |
     cephadm shell
       --fsid "{{ ceph_mon_fsid }}"
-      --config "/var/lib/ceph/{{ ceph_mon_fsid }}/mon.{{ hostvars[_cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
+      --config "/var/lib/ceph/{{ ceph_mon_fsid }}/mon.{{ hostvars[_ceph_mon_bootstrap_node]['inventory_hostname_short'] }}/config"
       -- ceph orch apply mon --placement="label:mon"
 
 - name: Validate monitor exist
   ansible.builtin.command: |
     cephadm shell
       --fsid "{{ ceph_mon_fsid }}"
-      --config "/var/lib/ceph/{{ ceph_mon_fsid }}/mon.{{ hostvars[_cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
+      --config "/var/lib/ceph/{{ ceph_mon_fsid }}/mon.{{ hostvars[_ceph_mon_bootstrap_node]['inventory_hostname_short'] }}/config"
       -- ceph orch ps --daemon_type mon --hostname "{{ inventory_hostname_short }}"
   register: ps_result
   until: ps_result.stdout | length > 0
