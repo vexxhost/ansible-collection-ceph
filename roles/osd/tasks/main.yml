@@ -82,10 +82,7 @@
 
 - name: Get `ceph-volume lvm list` status
   run_once: true
-  ansible.builtin.command: |
-    cephadm shell
-      --fsid "{{ ceph_osd_fsid }}"
-      -- ceph-volume lvm list --format json
+  ansible.builtin.command: cephadm shell -- ceph-volume lvm list --format json
   register: ceph_lvm_stat
   changed_when: false
 
