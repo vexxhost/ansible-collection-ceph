@@ -2,15 +2,17 @@
 # SPDX-License-Identifier: Apache-2.0
 
 - hosts: all
-  tasks:
-    - name: Install PIP
-      ansible.builtin.include_role:
-        name: ensure-pip
+  roles:
+    - ensure-pip
+    - ensure-virtualenv
 
+  tasks:
     - name: Install Molecule
+      become: true
       ansible.builtin.pip:
         chdir: "{{ zuul.project.src_dir }}"
         requirements: requirements.txt
+        virtualenv: "{{ ansible_user_dir }}/.venv"
 
     - name: Uninstall "snapd"
       become: true
