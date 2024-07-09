@@ -3,6 +3,10 @@
 
 - hosts: all
   tasks:
+    - name: Install PIP
+      ansible.builtin.include_role:
+        name: ensure-pip
+
     - name: Install Molecule
       ansible.builtin.pip:
         requirements: "{{ zuul.project.src_dir }}/requirements.txt"
