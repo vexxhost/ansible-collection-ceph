@@ -5,20 +5,28 @@
     merge-mode: squash-merge
     check:
       jobs:
+        - ansible-collection-ceph-molecule-aio-adopt-ubuntu-focal-pacific
+        - ansible-collection-ceph-molecule-aio-adopt-ubuntu-focal-quincy
         - ansible-collection-ceph-molecule-aio-ubuntu-focal-pacific
         - ansible-collection-ceph-molecule-aio-ubuntu-focal-quincy
         - ansible-collection-ceph-molecule-aio-ubuntu-focal-reef
         - ansible-collection-ceph-molecule-aio-ubuntu-jammy-reef
+        - ansible-collection-ceph-molecule-ha-adopt-ubuntu-focal-pacific
+        - ansible-collection-ceph-molecule-ha-adopt-ubuntu-focal-quincy
         - ansible-collection-ceph-molecule-ha-ubuntu-focal-pacific
         - ansible-collection-ceph-molecule-ha-ubuntu-focal-quincy
         - ansible-collection-ceph-molecule-ha-ubuntu-focal-reef
         - ansible-collection-ceph-molecule-ha-ubuntu-jammy-reef
     gate:
       jobs:
+        - ansible-collection-ceph-molecule-aio-adopt-ubuntu-focal-pacific
+        - ansible-collection-ceph-molecule-aio-adopt-ubuntu-focal-quincy
         - ansible-collection-ceph-molecule-aio-ubuntu-focal-pacific
         - ansible-collection-ceph-molecule-aio-ubuntu-focal-quincy
         - ansible-collection-ceph-molecule-aio-ubuntu-focal-reef
         - ansible-collection-ceph-molecule-aio-ubuntu-jammy-reef
+        - ansible-collection-ceph-molecule-ha-adopt-ubuntu-focal-pacific
+        - ansible-collection-ceph-molecule-ha-adopt-ubuntu-focal-quincy
         - ansible-collection-ceph-molecule-ha-ubuntu-focal-pacific
         - ansible-collection-ceph-molecule-ha-ubuntu-focal-quincy
         - ansible-collection-ceph-molecule-ha-ubuntu-focal-reef
