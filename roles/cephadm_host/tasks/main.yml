@@ -20,7 +20,11 @@
       run_once: true
       changed_when: false
       delegate_to: "{{ cephadm_host_admin_host }}"
-      ansible.builtin.command: cephadm shell -- ceph cephadm get-pub-key
+      ansible.builtin.command: |
+        cephadm shell
+          --fsid "{{ cephadm_host_fsid }}"
+          --config "/var/lib/ceph/{{ cephadm_host_fsid }}/mon.{{ hostvars[cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
+          -- ceph cephadm get-pub-key
       register: cephadm_host_public_key_command
 
     - name: Set fact with public SSH key for "cephadm" user
@@ -39,9 +43,11 @@
 - name: Add new host to Ceph
   changed_when: false
   delegate_to: "{{ cephadm_host_admin_host }}"
-  ansible.builtin.command:
-    cmd: |
-      cephadm shell -- ceph orch host add
-        {{ inventory_hostname_short }}
-        {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}
-        {% if cephadm_host_labels | length > 0 %}--labels={{ cephadm_host_labels | join(',') }}{% endif %}
+  ansible.builtin.command: |
+    cephadm shell
+      --fsid "{{ cephadm_host_fsid }}"
+      --config "/var/lib/ceph/{{ cephadm_host_fsid }}/mon.{{ hostvars[cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
+      -- ceph orch host add
+      {{ inventory_hostname_short }}
+      {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}
+      {% if cephadm_host_labels | length > 0 %}--labels={{ cephadm_host_labels | join(',') }}{% endif %}

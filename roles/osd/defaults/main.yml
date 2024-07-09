@@ -16,5 +16,5 @@
 ceph_osd_mons_group: "{{ ceph_control_plane_group | default('controllers') }}"
 ceph_osd_osds_group: "{{ ceph_osd_group | default('cephs') }}"
 
-# Filesystem ID
-ceph_mon_fsid: "{{ ceph_fsid }}"
+# Ceph FSID
+ceph_osd_fsid: "{{ ceph_fsid }}"
