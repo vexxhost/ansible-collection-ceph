@@ -9,7 +9,7 @@
 
     - name: Run Molecule
       become: true
-      ansible.builtin.command: molecule test -s {{ molecule_scenario }}
+      ansible.builtin.command: "{{ ansible_env.HOME }}/.local/bin/molecule test -s {{ molecule_scenario }}"
       environment:
         MOLECULE_DISTRO: "{{ molecule_distro }}"
         MOLECULE_CEPH_VERSION: "{{ ceph_version }}"
