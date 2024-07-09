@@ -4,6 +4,7 @@
 - job:
     name: ansible-collection-ceph-molecule
     abstract: true
+    timeout: 3600
     pre-run: zuul.d/playbooks/molecule/pre.yml
     run: zuul.d/playbooks/molecule/run.yml
 
@@ -30,11 +31,13 @@
 - job:
     name: ansible-collection-ceph-molecule-ha-adopt
     parent: ansible-collection-ceph-molecule-ha
+    timeout: 7200
     abstract: true
     run: zuul.d/playbooks/molecule/adopt.yml
 
 - job:
     name: ansible-collection-ceph-molecule-ha-upgrade
     parent: ansible-collection-ceph-molecule-ha
+    timeout: 7200
     abstract: true
     run: zuul.d/playbooks/molecule/upgrade.yml
