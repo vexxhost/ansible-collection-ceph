@@ -25,11 +25,18 @@
   changed_when: false
   delegate_to: "{{ _ceph_mon_bootstrap_node | default(groups[ceph_mon_group][0]) }}"
   run_once: true
-  ansible.builtin.command:
-    cmd: cephadm shell -- ceph orch apply mgr --placement="label:mgr"
+  ansible.builtin.command: |
+    cephadm shell
+      --fsid "{{ ceph_mgr_fsid }}"
+      --config "/var/lib/ceph/{{ ceph_mgr_fsid }}/mon.{{ hostvars[_cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
+      -- ceph orch apply mgr --placement="label:mgr"
 
 - name: Validate manager exist
-  ansible.builtin.command: cephadm shell -- ceph orch ps --daemon_type mgr --hostname "{{ inventory_hostname_short }}"
+  ansible.builtin.command: |
+    cephadm shell
+      --fsid "{{ ceph_mgr_fsid }}"
+      --config "/var/lib/ceph/{{ ceph_mgr_fsid }}/mon.{{ hostvars[_cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
+      -- ceph orch ps --daemon_type mgr --hostname "{{ inventory_hostname_short }}"
   register: ps_result
   until: ps_result.stdout | length > 0
   retries: "{{ ceph_mon_check_retry | default(120) }}"
