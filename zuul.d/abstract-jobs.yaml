@@ -4,6 +4,8 @@
 - job:
     name: ansible-collection-ceph-molecule
     abstract: true
+    pre-run: zuul.d/playbooks/molecule/pre.yml
+    run: zuul.d/playbooks/molecule/run.yml
 
 - job:
     name: ansible-collection-ceph-molecule-aio
