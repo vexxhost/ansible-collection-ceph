@@ -1,0 +1,16 @@
+# Copyright (c) 2023 VEXXHOST, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+- hosts: all
+  tasks:
+    - name: Install Molecule
+      ansible.builtin.pip:
+        requirements: "{{ zuul.project.src_dir }}/requirements.txt"
+      vars:
+        zuul_work_dir: "{{ zuul.project.src_dir }}"
+
+    - name: Uninstall "snapd"
+      become: true
+      ansible.builtin.apt:
+        name: snapd
+        state: purged

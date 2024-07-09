@@ -1,0 +1,20 @@
+# Copyright (c) 2023 VEXXHOST, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+- job:
+    name: ansible-collection-ceph-molecule
+    abstract: true
+
+- job:
+    name: ansible-collection-ceph-molecule-aio
+    parent: ansible-collection-ceph-molecule
+    abstract: true
+    vars:
+      molecule_scenario: aio
+
+- job:
+    name: ansible-collection-ceph-molecule-ha
+    parent: ansible-collection-ceph-molecule
+    abstract: true
+    vars:
+      molecule_scenario: ha
