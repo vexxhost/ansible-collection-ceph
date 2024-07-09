@@ -16,4 +16,5 @@
       become: true
       ansible.builtin.apt:
         name: snapd
-        state: purged
+        state: absent
+        purge: true
