@@ -1,0 +1,52 @@
+# Copyright (c) 2024 VEXXHOST, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+- hosts: all
+  tasks:
+    - name: Generate random "fsid" using "uuidgen"
+      ansible.builtin.command: uuidgen
+      register: fsid
+
+    - name: Converge Molecule
+      become: true
+      ansible.builtin.command: molecule converge -s {{ molecule_scenario }}
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+      environment:
+        PATH: "{{ ansible_user_dir }}/.venv/bin:{{ ansible_env.PATH }}"
+        MOLECULE_DISTRO: "{{ molecule_distro }}"
+        MOLECULE_CEPH_VERSION: "{{ previous_ceph_version }}"
+        MOLECULE_CEPH_FSID: "{{ fsid.stdout | trim }}"
+
+    - name: Verify Ceph cluster
+      become: true
+      ansible.builtin.command: molecule verify -s {{ molecule_scenario }}
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+      environment:
+        PATH: "{{ ansible_user_dir }}/.venv/bin:{{ ansible_env.PATH }}"
+        MOLECULE_DISTRO: "{{ molecule_distro }}"
+        MOLECULE_CEPH_VERSION: "{{ previous_ceph_version }}"
+        MOLECULE_CEPH_FSID: "{{ fsid.stdout | trim }}"
+
+    - name: Converge Molecule
+      become: true
+      ansible.builtin.command: molecule converge -s {{ molecule_scenario }}
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+      environment:
+        PATH: "{{ ansible_user_dir }}/.venv/bin:{{ ansible_env.PATH }}"
+        MOLECULE_DISTRO: "{{ molecule_distro }}"
+        MOLECULE_CEPH_VERSION: "{{ ceph_version }}"
+        MOLECULE_CEPH_FSID: "{{ fsid.stdout | trim }}"
+
+    - name: Verify Ceph cluster
+      become: true
+      ansible.builtin.command: molecule verify -s {{ molecule_scenario }}
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+      environment:
+        PATH: "{{ ansible_user_dir }}/.venv/bin:{{ ansible_env.PATH }}"
+        MOLECULE_DISTRO: "{{ molecule_distro }}"
+        MOLECULE_CEPH_VERSION: "{{ ceph_version }}"
+        MOLECULE_CEPH_FSID: "{{ fsid.stdout | trim }}"

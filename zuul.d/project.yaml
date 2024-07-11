@@ -1,0 +1,37 @@
+# Copyright (c) 2024 VEXXHOST, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+- project:
+    merge-mode: squash-merge
+    check:
+      jobs:
+        - ansible-collection-ceph-molecule-aio-adopt-ubuntu-focal-pacific
+        - ansible-collection-ceph-molecule-aio-adopt-ubuntu-focal-quincy
+        - ansible-collection-ceph-molecule-aio-ubuntu-focal-pacific
+        - ansible-collection-ceph-molecule-aio-ubuntu-focal-quincy
+        - ansible-collection-ceph-molecule-aio-ubuntu-focal-reef
+        - ansible-collection-ceph-molecule-aio-ubuntu-jammy-reef
+        - ansible-collection-ceph-molecule-ha-adopt-ubuntu-focal-pacific
+        - ansible-collection-ceph-molecule-ha-adopt-ubuntu-focal-quincy
+        - ansible-collection-ceph-molecule-ha-ubuntu-focal-pacific
+        - ansible-collection-ceph-molecule-ha-ubuntu-focal-quincy
+        - ansible-collection-ceph-molecule-ha-ubuntu-focal-reef
+        - ansible-collection-ceph-molecule-ha-ubuntu-jammy-reef
+        - ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-pacific
+        - ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-quincy
+    gate:
+      jobs:
+        - ansible-collection-ceph-molecule-aio-adopt-ubuntu-focal-pacific
+        - ansible-collection-ceph-molecule-aio-adopt-ubuntu-focal-quincy
+        - ansible-collection-ceph-molecule-aio-ubuntu-focal-pacific
+        - ansible-collection-ceph-molecule-aio-ubuntu-focal-quincy
+        - ansible-collection-ceph-molecule-aio-ubuntu-focal-reef
+        - ansible-collection-ceph-molecule-aio-ubuntu-jammy-reef
+        - ansible-collection-ceph-molecule-ha-adopt-ubuntu-focal-pacific
+        - ansible-collection-ceph-molecule-ha-adopt-ubuntu-focal-quincy
+        - ansible-collection-ceph-molecule-ha-ubuntu-focal-pacific
+        - ansible-collection-ceph-molecule-ha-ubuntu-focal-quincy
+        - ansible-collection-ceph-molecule-ha-ubuntu-focal-reef
+        - ansible-collection-ceph-molecule-ha-ubuntu-jammy-reef
+        - ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-pacific
+        - ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-quincy

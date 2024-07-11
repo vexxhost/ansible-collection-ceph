@@ -15,7 +15,7 @@
 - name: Get monitor status
   run_once: true
   ansible.builtin.stat:
-    path: "/var/lib/ceph/{{ ceph_mon_fsid }}/mon.{{ hostvars[item]['inventory_hostname_short'] }}/store.db"
+    path: "/var/lib/ceph/{{ ceph_osd_fsid }}/mon.{{ hostvars[item]['inventory_hostname_short'] }}/store.db"
   register: _ceph_mon_stat
   loop: "{{ groups[ceph_osd_mons_group] }}"
   delegate_to: "{{ item }}"
@@ -54,7 +54,11 @@
 
 - name: Wait until OSD added to cephadm
   when: item.style == "legacy"
-  ansible.builtin.command: cephadm shell -- ceph orch ps --daemon_type osd --format json
+  ansible.builtin.command: |
+    cephadm shell
+      --fsid "{{ ceph_osd_fsid }}"
+      --config "/var/lib/ceph/{{ ceph_osd_fsid }}/mon.{{ hostvars[_cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
+      -- ceph orch ps --daemon_type osd --format json
   register: _orch_osd_ps
   delegate_to: "{{ _cephadm_host_admin_host }}"
   until: item.name in (_orch_osd_ps.stdout | from_json | map(attribute='daemon_name'))
@@ -87,20 +91,31 @@
   changed_when: false
   when: item not in ceph_lvm_stat.stdout
   delegate_to: "{{ _cephadm_host_admin_host }}"
-  ansible.builtin.command:
-    cmd: cephadm shell -- ceph orch daemon add osd {{ inventory_hostname_short }}:{{ item }}
+  ansible.builtin.command: |
+    cephadm shell
+      --fsid "{{ ceph_osd_fsid }}"
+      --config "/var/lib/ceph/{{ ceph_osd_fsid }}/mon.{{ hostvars[_cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
+      -- ceph orch daemon add osd {{ inventory_hostname_short }}:{{ item }}
   loop: "{{ ceph_osd_devices }}"
 
 - name: Get mon dump
   run_once: true
-  ansible.builtin.command: cephadm shell -- ceph mon dump --format json
+  ansible.builtin.command: |
+    cephadm shell
+      --fsid "{{ ceph_osd_fsid }}"
+      --config "/var/lib/ceph/{{ ceph_osd_fsid }}/mon.{{ hostvars[_cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
+      -- ceph mon dump --format json
   register: _ceph_mon_dump
   changed_when: false
   delegate_to: "{{ _cephadm_host_admin_host }}"
 
 - name: Mark require osd release
   run_once: true
-  ansible.builtin.command: cephadm shell -- ceph osd require-osd-release "{{ (_ceph_mon_dump.stdout | from_json)['min_mon_release_name'] }}"
+  ansible.builtin.command: |
+    cephadm shell
+      --fsid "{{ ceph_osd_fsid }}"
+      --config "/var/lib/ceph/{{ ceph_osd_fsid }}/mon.{{ hostvars[_cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
+      -- ceph osd require-osd-release "{{ (_ceph_mon_dump.stdout | from_json)['min_mon_release_name'] }}"
   changed_when: false
   delegate_to: "{{ _cephadm_host_admin_host }}"
 

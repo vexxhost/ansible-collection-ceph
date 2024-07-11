@@ -1,0 +1,19 @@
+# Copyright (c) 2023 VEXXHOST, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+- hosts: all
+  tasks:
+    - name: Generate random "fsid" using "uuidgen"
+      ansible.builtin.command: uuidgen
+      register: fsid
+
+    - name: Run Molecule
+      become: true
+      ansible.builtin.command: molecule test -s {{ molecule_scenario }}
+      args:
+        chdir: "{{ zuul.project.src_dir }}"
+      environment:
+        PATH: "{{ ansible_user_dir }}/.venv/bin:{{ ansible_env.PATH }}"
+        MOLECULE_DISTRO: "{{ molecule_distro }}"
+        MOLECULE_CEPH_VERSION: "{{ ceph_version }}"
+        MOLECULE_CEPH_FSID: "{{ fsid.stdout | trim }}"
