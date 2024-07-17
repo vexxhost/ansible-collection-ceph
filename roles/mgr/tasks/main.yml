@@ -42,3 +42,11 @@
   retries: "{{ ceph_mon_check_retry | default(120) }}"
   delay: 3
   changed_when: false
+
+- name: Enable the Ceph Manager prometheus module
+  ansible.builtin.command: |
+    cephadm shell
+      --fsid "{{ ceph_mgr_fsid }}"
+      --config "/var/lib/ceph/{{ ceph_mgr_fsid }}/mon.{{ inventory_hostname_short }}/config"
+      -- ceph mgr module enable prometheus
+  changed_when: false
