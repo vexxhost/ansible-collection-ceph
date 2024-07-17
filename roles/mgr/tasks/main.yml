@@ -49,5 +49,4 @@
       --fsid "{{ ceph_mgr_fsid }}"
       --config "/var/lib/ceph/{{ ceph_mgr_fsid }}/mon.{{ inventory_hostname_short }}/config"
       -- ceph mgr module enable prometheus
-  register: result
-  changed_when: result.rc == 0
+  changed_when: false
