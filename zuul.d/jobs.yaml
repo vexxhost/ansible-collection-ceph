@@ -38,7 +38,7 @@
 
 - job:
     name: ansible-collection-ceph-molecule-aio-adopt-ubuntu-focal-quincy
-    parent: ansible-collection-ceph-molecule-aio
+    parent: ansible-collection-ceph-molecule-aio-adopt
     vars:
       molecule_distro: ubuntu2004
       ceph_version: 17.2.7
@@ -52,7 +52,7 @@
 
 - job:
     name: ansible-collection-ceph-molecule-ha-adopt-ubuntu-focal-quincy
-    parent: ansible-collection-ceph-molecule-ha
+    parent: ansible-collection-ceph-molecule-ha-adopt
     vars:
       molecule_distro: ubuntu2004
       ceph_version: 17.2.7
