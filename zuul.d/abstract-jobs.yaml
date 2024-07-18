@@ -36,14 +36,13 @@
 - job:
     name: ansible-collection-ceph-molecule-ha-adopt
     parent: ansible-collection-ceph-molecule-ha
-    timeout: 7200
+    timeout: 10800
     abstract: true
     run: zuul.d/playbooks/molecule/adopt.yml
     nodeset:
       nodes:
         - name: ubuntu-jammy
-          label: jammy-4c-16g
-
+          label: jammy-16c-64g
 
 - job:
     name: ansible-collection-ceph-molecule-ha-upgrade
