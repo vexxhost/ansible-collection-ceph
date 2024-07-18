@@ -18,6 +18,7 @@
 - job:
     name: ansible-collection-ceph-molecule-aio-adopt
     parent: ansible-collection-ceph-molecule-aio
+    timeout: 7200
     abstract: true
     run: zuul.d/playbooks/molecule/adopt.yml
     nodeset:
