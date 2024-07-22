@@ -19,6 +19,7 @@
         - ansible-collection-ceph-molecule-ha-ubuntu-jammy-reef
         - ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-pacific
         - ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-quincy
+        - build-ansible-collection
     gate:
       jobs:
         - ansible-collection-ceph-molecule-aio-adopt-ubuntu-focal-pacific
@@ -35,3 +36,7 @@
         - ansible-collection-ceph-molecule-ha-ubuntu-jammy-reef
         - ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-pacific
         - ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-quincy
+        - build-ansible-collection
+    release:
+      jobs:
+        - publish-ansible-collection-vexxhost
