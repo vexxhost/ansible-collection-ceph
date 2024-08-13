@@ -34,3 +34,13 @@
         - ceph-osd
   environment:
     CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('18.2.1'))) }}"
+
+- name: Upgrade check
+  hosts: "{{ ceph_control_plane_group | default('controllers') }}"
+  become: true
+  roles:
+    - role: upgrade_check
+      tags:
+        - ceph-upgrade-check
+  environment:
+    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('18.2.1'))) }}"
