@@ -50,3 +50,15 @@
     CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.3'))) }}"
     CEPH_CONTAINER_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.3'))) }}"
     CEPH_CONTAINER_BINARY: docker
+
+- name: Upgrade check
+  hosts: "{{ ceph_control_plane_group | default('controllers') }}"
+  become: true
+  roles:
+    - role: upgrade_check
+      tags:
+        - ceph-upgrade-check
+  environment:
+    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.3'))) }}"
+    CEPH_CONTAINER_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.3'))) }}"
+    CEPH_CONTAINER_BINARY: docker

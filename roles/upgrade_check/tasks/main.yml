@@ -1,0 +1,46 @@
+# Copyright (c) 2022 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+- name: Get ceph version
+  run_once: true
+  ansible.builtin.command: cephadm shell --fsid "{{ ceph_mon_fsid }}" -- ceph version
+  register: cluster_version
+  changed_when: false
+
+- name: Check upgrade version
+  run_once: true
+  ansible.builtin.set_fact:
+    check_upgrade: "{{ (cluster_version | regex_search('[0-9]+\\.[0-9]+\\.[0-9]+')) is version(ceph_version, '<') }}"
+
+- name: Run upgrade
+  when:
+    - check_upgrade
+  run_once: true
+  ansible.builtin.command: |
+    cephadm shell
+      --fsid "{{ ceph_mon_fsid }}"
+      -- ceph orch upgrade start --ceph-version "{{ ceph_version }}"
+  register: result
+  changed_when: "'Initiating upgrade' in result.stdout"
+
+- name: Wait until Ceph upgraded
+  when:
+    - check_upgrade
+  run_once: true
+  ansible.builtin.command: cephadm shell --fsid "{{ ceph_mon_fsid }}" -- ceph version
+  register: _cluster_version
+  until: "(_cluster_version | regex_search('[0-9]+\\.[0-9]+\\.[0-9]+'))  is version(ceph_version, '==')"
+  retries: "{{ ceph_upgrade_check_retry | default(120) }}"
+  delay: 10
+  changed_when: false
