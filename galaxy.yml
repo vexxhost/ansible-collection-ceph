@@ -1,6 +1,6 @@
 namespace: vexxhost
 name: ceph
-version: 3.0.1
+version: 3.0.2
 readme: README.md
 authors:
   - Mohammed Naser <mnaser@vexxhost.com>
