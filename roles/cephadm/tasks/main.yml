@@ -14,18 +14,23 @@
 
 - name: Install packages
   ansible.builtin.apt:
-    name: ["openssh-server", "chrony", "cephadm"]
+    name: ["openssh-server", "chrony"]
     install_recommends: false
 
-- name: Ensure Chrony is started
+- name: Ensure services are started
   ansible.builtin.service:
     name: chronyd
     state: started
+  loop:
+    - chronyd
+    - sshd
 
-- name: Ensure SSHD is started
-  ansible.builtin.service:
-    name: sshd
-    state: started
+- name: Download "cephadm"
+  ansible.builtin.get_url:
+    url: "https://download.ceph.com/rpm-{{ cephadm_version }}/el9/noarch/cephadm"
+    dest: /usr/local/bin/cephadm
+    mode: '0755'
+    force: true
 
 - name: Ensure "cephadm" user is present
   ansible.builtin.user:
