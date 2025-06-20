@@ -2,103 +2,30 @@
 # SPDX-License-Identifier: Apache-2.0
 
 - job:
-    name: ansible-collection-ceph-molecule-aio-ubuntu-focal-pacific
-    parent: ansible-collection-ceph-molecule-aio
-    vars:
-      molecule_distro: ubuntu2004
-      ceph_version: 16.2.15
-
-- job:
-    name: ansible-collection-ceph-molecule-aio-adopt-ubuntu-focal-pacific
-    parent: ansible-collection-ceph-molecule-aio-adopt
-    vars:
-      molecule_distro: ubuntu2004
-      ceph_version: 16.2.15
-
-- job:
-    name: ansible-collection-ceph-molecule-ha-ubuntu-focal-pacific
-    parent: ansible-collection-ceph-molecule-ha
-    vars:
-      molecule_distro: ubuntu2004
-      ceph_version: 16.2.15
-
-- job:
-    name: ansible-collection-ceph-molecule-ha-adopt-ubuntu-focal-pacific
-    parent: ansible-collection-ceph-molecule-ha-adopt
-    vars:
-      molecule_distro: ubuntu2004
-      ceph_version: 16.2.15
-
-- job:
-    name: ansible-collection-ceph-molecule-aio-ubuntu-focal-quincy
-    parent: ansible-collection-ceph-molecule-aio
-    vars:
-      molecule_distro: ubuntu2004
-      ceph_version: 17.2.7
-
-- job:
-    name: ansible-collection-ceph-molecule-aio-adopt-ubuntu-focal-quincy
-    parent: ansible-collection-ceph-molecule-aio
-    vars:
-      molecule_distro: ubuntu2004
-      ceph_version: 17.2.7
-
-- job:
-    name: ansible-collection-ceph-molecule-ha-ubuntu-focal-quincy
-    parent: ansible-collection-ceph-molecule-ha
-    vars:
-      molecule_distro: ubuntu2004
-      ceph_version: 17.2.7
-
-- job:
-    name: ansible-collection-ceph-molecule-ha-adopt-ubuntu-focal-quincy
-    parent: ansible-collection-ceph-molecule-ha
-    vars:
-      molecule_distro: ubuntu2004
-      ceph_version: 17.2.7
-
-- job:
     name: ansible-collection-ceph-molecule-aio-ubuntu-focal-reef
     parent: ansible-collection-ceph-molecule-aio
     vars:
       molecule_distro: ubuntu2004
-      ceph_version: 18.2.2
+      ceph_version: 18.2.7
 
 - job:
     name: ansible-collection-ceph-molecule-ha-ubuntu-focal-reef
     parent: ansible-collection-ceph-molecule-ha
     vars:
       molecule_distro: ubuntu2004
-      ceph_version: 18.2.2
+      ceph_version: 18.2.7
 
 - job:
     name: ansible-collection-ceph-molecule-aio-ubuntu-jammy-reef
     parent: ansible-collection-ceph-molecule-aio
     vars:
       molecule_distro: ubuntu2204
-      ceph_version: 18.2.2
+      ceph_version: 18.2.7
 
 - job:
     name: ansible-collection-ceph-molecule-ha-ubuntu-jammy-reef
     parent: ansible-collection-ceph-molecule-ha
     vars:
       molecule_distro: ubuntu2204
-      ceph_version: 18.2.2
+      ceph_version: 18.2.7
 
-# Upgrade jobs
-
-- job:
-    name: ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-quincy
-    parent: ansible-collection-ceph-molecule-ha-upgrade
-    vars:
-      molecule_distro: ubuntu2004
-      previous_ceph_version: 17.2.7
-      ceph_version: 18.2.2
-
-- job:
-    name: ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-pacific
-    parent: ansible-collection-ceph-molecule-ha-upgrade
-    vars:
-      molecule_distro: ubuntu2004
-      previous_ceph_version: 16.2.15
-      ceph_version: 18.2.2

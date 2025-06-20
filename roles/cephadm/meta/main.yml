@@ -26,4 +26,3 @@ galaxy_info:
 
 dependencies:
   - role: vexxhost.containers.docker
-  - role: repository
