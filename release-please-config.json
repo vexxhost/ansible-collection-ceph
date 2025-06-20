@@ -1,10 +1,14 @@
 {
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "packages": {
     ".": {
       "release-type": "python",
-      "draft": true,
       "extra-files": [
-        "galaxy.yml"
+        {
+          "type": "yaml",
+          "path": "galaxy.yml",
+          "jsonpath": "$.version"
+        }
       ]
     }
   }
