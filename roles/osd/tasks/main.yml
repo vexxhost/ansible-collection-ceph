@@ -12,11 +12,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-- name: Install packages
-  ansible.builtin.apt:
-    name: ["lvm2"]
-    install_recommends: false
-
 - name: Get monitor status
   run_once: true
   ansible.builtin.stat:

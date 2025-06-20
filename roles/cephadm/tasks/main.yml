@@ -14,7 +14,7 @@
 
 - name: Install packages
   ansible.builtin.apt:
-    name: ["openssh-server", "chrony"]
+    name: ["chrony", "lvm2", "openssh-server"]
     install_recommends: false
 
 - name: Ensure services are started
