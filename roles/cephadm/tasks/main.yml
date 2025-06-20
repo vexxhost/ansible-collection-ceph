@@ -19,7 +19,7 @@
 
 - name: Ensure services are started
   ansible.builtin.service:
-    name: chronyd
+    name: "{{ item }}"
     state: started
   loop:
     - chronyd
