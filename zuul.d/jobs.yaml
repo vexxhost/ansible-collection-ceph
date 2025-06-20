@@ -2,34 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 - job:
-    name: ansible-collection-ceph-molecule-aio-ubuntu-focal-pacific
-    parent: ansible-collection-ceph-molecule-aio
-    vars:
-      molecule_distro: ubuntu2004
-      ceph_version: 16.2.15
-
-- job:
-    name: ansible-collection-ceph-molecule-ha-ubuntu-focal-pacific
-    parent: ansible-collection-ceph-molecule-ha
-    vars:
-      molecule_distro: ubuntu2004
-      ceph_version: 16.2.15
-
-- job:
-    name: ansible-collection-ceph-molecule-aio-ubuntu-focal-quincy
-    parent: ansible-collection-ceph-molecule-aio
-    vars:
-      molecule_distro: ubuntu2004
-      ceph_version: 17.2.7
-
-- job:
-    name: ansible-collection-ceph-molecule-ha-ubuntu-focal-quincy
-    parent: ansible-collection-ceph-molecule-ha
-    vars:
-      molecule_distro: ubuntu2004
-      ceph_version: 17.2.7
-
-- job:
     name: ansible-collection-ceph-molecule-aio-ubuntu-focal-reef
     parent: ansible-collection-ceph-molecule-aio
     vars:
@@ -57,20 +29,26 @@
       molecule_distro: ubuntu2204
       ceph_version: 18.2.2
 
+- job:
+    name: ansible-collection-ceph-molecule-aio-ubuntu-jammy-squid
+    parent: ansible-collection-ceph-molecule-aio
+    vars:
+      molecule_distro: ubuntu2204
+      ceph_version: 19.2.0
+
+- job:
+    name: ansible-collection-ceph-molecule-ha-ubuntu-jammy-squid
+    parent: ansible-collection-ceph-molecule-ha
+    vars:
+      molecule_distro: ubuntu2204
+      ceph_version: 19.2.0
+
 # Upgrade jobs
 
 - job:
-    name: ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-quincy
+    name: ansible-collection-ceph-molecule-ha-upgrade-ubuntu-jammy-reef-to-squid
     parent: ansible-collection-ceph-molecule-ha-upgrade
     vars:
-      molecule_distro: ubuntu2004
-      previous_ceph_version: 17.2.7
-      ceph_version: 18.2.2
-
-- job:
-    name: ansible-collection-ceph-molecule-ha-upgrade-ubuntu-focal-pacific
-    parent: ansible-collection-ceph-molecule-ha-upgrade
-    vars:
-      molecule_distro: ubuntu2004
-      previous_ceph_version: 16.2.15
-      ceph_version: 18.2.2
+      molecule_distro: ubuntu2204
+      previous_ceph_version: 18.2.2
+      ceph_version: 19.2.0
