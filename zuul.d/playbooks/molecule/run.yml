@@ -3,10 +3,6 @@
 
 - hosts: all
   tasks:
-    - name: Make root filesystem "rshared"
-      become: true
-      ansible.builtin.command: mount --make-rshared /
-
     - name: Generate random "fsid" using "uuidgen"
       ansible.builtin.command: uuidgen
       register: fsid
