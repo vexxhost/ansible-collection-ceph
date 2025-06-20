@@ -1,6 +1,6 @@
 namespace: vexxhost
 name: ceph
-version: 3.0.2
+version: 3.0.2 # x-release-please-version
 readme: README.md
 authors:
   - Mohammed Naser <mnaser@vexxhost.com>
@@ -24,3 +24,5 @@ build_ignore:
   - .github
   - molecule
   - .pre-commit-config.yaml
+  - .release-please-manifest.json
+  - release-please-config.json
