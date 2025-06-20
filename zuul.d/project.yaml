@@ -7,17 +7,11 @@
       jobs:
         - ansible-collection-ceph-molecule-aio-ubuntu-focal-reef
         - ansible-collection-ceph-molecule-aio-ubuntu-jammy-reef
-        - ansible-collection-ceph-molecule-aio-ubuntu-jammy-squid
         - ansible-collection-ceph-molecule-ha-ubuntu-focal-reef
         - ansible-collection-ceph-molecule-ha-ubuntu-jammy-reef
-        - ansible-collection-ceph-molecule-ha-ubuntu-jammy-squid
-        - ansible-collection-ceph-molecule-ha-upgrade-ubuntu-jammy-reef-to-squid
     gate:
       jobs:
         - ansible-collection-ceph-molecule-aio-ubuntu-focal-reef
         - ansible-collection-ceph-molecule-aio-ubuntu-jammy-reef
-        - ansible-collection-ceph-molecule-aio-ubuntu-jammy-squid
         - ansible-collection-ceph-molecule-ha-ubuntu-focal-reef
         - ansible-collection-ceph-molecule-ha-ubuntu-jammy-reef
-        - ansible-collection-ceph-molecule-ha-ubuntu-jammy-squid
-        - ansible-collection-ceph-molecule-ha-upgrade-ubuntu-jammy-reef-to-squid
