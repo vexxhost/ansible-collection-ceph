@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.0](https://github.com/vexxhost/ansible-collection-ceph/compare/v3.0.1...v3.1.0) (2025-06-20)
+
+
+### Features
+
+* Download cephadm binary instead of using package ([#45](https://github.com/vexxhost/ansible-collection-ceph/issues/45)) ([b3e10cc](https://github.com/vexxhost/ansible-collection-ceph/commit/b3e10cc10527fa2badb70ad9a5b1d1ce3ed48ab3))
+
 ## [3.0.1](https://github.com/vexxhost/ansible-collection-ceph/compare/v3.0.0...v3.0.1) (2024-02-05)
 
 
