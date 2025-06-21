@@ -29,3 +29,16 @@
       molecule_distro: ubuntu2204
       ceph_version: 18.2.7
 
+- job:
+    name: ansible-collection-ceph-molecule-aio-ubuntu-noble-reef
+    parent: ansible-collection-ceph-molecule-aio
+    vars:
+      molecule_distro: ubuntu2404
+      ceph_version: 18.2.7
+
+- job:
+    name: ansible-collection-ceph-molecule-ha-ubuntu-noble-reef
+    parent: ansible-collection-ceph-molecule-ha
+    vars:
+      molecule_distro: ubuntu2404
+      ceph_version: 18.2.7
