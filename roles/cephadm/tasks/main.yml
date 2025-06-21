@@ -21,9 +21,11 @@
   ansible.builtin.service:
     name: "{{ item }}"
     state: started
-  loop:
-    - chronyd
-    - sshd
+  loop: >-
+    {{
+      ['systemd-timesyncd', 'ssh'] if (ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_version'] is version('24.04', '=='))
+      else ['chronyd', 'sshd']
+    }}
 
 - name: Download "cephadm"
   ansible.builtin.get_url:
