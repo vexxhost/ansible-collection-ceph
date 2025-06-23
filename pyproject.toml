@@ -1,10 +1,6 @@
-[build-system]
-requires = ["hatchling", "hatch-vcs"]
-build-backend = "hatchling.build"
-
 [project]
 name = "ansible-collection-ceph"
-dynamic = ["version"]
+version = "3.1.0"
 authors = [{ name = "VEXXHOST, Inc.", email = "support@vexxhost.com" }]
 description = "Ansible collection for deploying Ceph"
 readme = "README.md"
@@ -38,5 +34,5 @@ dev = [
 source = "https://github.com/vexxhost/ansible-collection-ceph"
 issues = "https://github.com/vexxhost/ansible-collection-ceph/issues"
 
-[tool.hatch.version]
-source = "vcs"
+[tool.uv]
+package = false
