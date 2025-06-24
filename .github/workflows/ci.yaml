@@ -45,5 +45,3 @@ jobs:
         with:
           scenario: aio
           preserve-env: MOLECULE_DISTRO,MOLECULE_CEPH_VERSION
-      - uses: mxschmitt/action-tmate@v3
-        if: failure()
