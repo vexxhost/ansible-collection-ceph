@@ -35,7 +35,7 @@
   ansible.builtin.command: |
     cephadm shell
       --fsid "{{ ceph_mgr_fsid }}"
-      --config "/var/lib/ceph/{{ ceph_mon_fsid }}/mon.{{ inventory_hostname_short }}/config"
+      --config "/var/lib/ceph/{{ ceph_mgr_fsid }}/mon.{{ inventory_hostname_short }}/config"
       -- ceph orch ps --daemon_type mgr --hostname "{{ inventory_hostname_short }}"
   register: ps_result
   until: ps_result.stdout | length > 0
