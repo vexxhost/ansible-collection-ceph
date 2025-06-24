@@ -31,4 +31,25 @@
       ansible.builtin.package:
         update_cache: true
 
+    # NOTE(mnaser): systemd-timesyncd does not start if it's running inside
+    #               a container, so we need to bypass the "ConditionVirtualization"
+    #               check to allow it to start.
+    - name: Create a directory for systemd-timesyncd override
+      ansible.builtin.file:
+        path: /etc/systemd/system/systemd-timesyncd.service.d
+        state: directory
+    - name: Bypass the "ConditionVirtualization" check for systemd-timesyncd
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/systemd-timesyncd.service.d/override.conf
+        content: |
+          [Unit]
+          ConditionVirtualization=
+      notify:
+        - Reload systemd
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
 - ansible.builtin.import_playbook: vexxhost.ceph.create_fake_devices

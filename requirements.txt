@@ -1,9 +1,0 @@
-ansible-core
-docker-image-py
-jmespath
-molecule
-molecule-plugins[docker]
-netaddr
-pytest
-pytest-forked
-pytest-xdist

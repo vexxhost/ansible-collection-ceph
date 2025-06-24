@@ -12,18 +12,25 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+- name: Gather variables for each operating system
+  ansible.builtin.include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_facts['distribution'] | lower }}-{{ ansible_facts['distribution_version'] | lower }}.yml"
+    - "{{ ansible_facts['distribution'] | lower }}-{{ ansible_facts['distribution_major_version'] | lower }}.yml"
+    - "{{ ansible_facts['os_family'] | lower }}-{{ ansible_facts['distribution_major_version'] | lower }}.yml"
+    - "{{ ansible_facts['distribution'] | lower }}.yml"
+    - "{{ ansible_facts['os_family'] | lower }}.yml"
+
 - name: Install packages
-  ansible.builtin.apt:
-    name: ["chrony", "lvm2", "openssh-server"]
+  ansible.builtin.package:
+    name: "{{ cephadm_packages }}"
     install_recommends: false
 
 - name: Ensure services are started
   ansible.builtin.service:
     name: "{{ item }}"
     state: started
-  loop:
-    - chronyd
-    - sshd
+  loop: "{{ cephadm_services }}"
 
 - name: Download "cephadm"
   ansible.builtin.get_url:
