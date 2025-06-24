@@ -34,6 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        scenario: [aio, ha]
         distro: [ubuntu2004, ubuntu2204, ubuntu2404]
         ceph_version: [18.2.7]
     steps:
@@ -43,5 +44,5 @@ jobs:
           MOLECULE_DISTRO: ${{ matrix.distro }}
           MOLECULE_CEPH_VERSION: ${{ matrix.ceph_version }}
         with:
-          scenario: aio
+          scenario: ${{ matrix.scenario }}
           preserve-env: MOLECULE_DISTRO,MOLECULE_CEPH_VERSION
