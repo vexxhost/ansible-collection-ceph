@@ -9,7 +9,7 @@ license:
   - GPL-3.0-or-later
 dependencies:
   community.general: '>=4.5.0'
-  ansible.utils: 2.9.0
+  ansible.utils: 2.12.0
   vexxhost.containers: '>=1.1.1'
 tags:
   - application
