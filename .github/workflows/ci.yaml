@@ -26,7 +26,7 @@ jobs:
       - run: uv run ansible-galaxy collection install .
       - run: uv run ansible-test units
         working-directory: /home/runner/.ansible/collections/ansible_collections/vexxhost/ceph
-      - uses: mikepenz/action-junit-report@150e2f992e4fad1379da2056d1d1c279f520e058 # v3
+      - uses: mikepenz/action-junit-report@a83fd2b5d58d4fc702e690c1ea688d702d28d281 # v5.6.1
         if: always()
         with:
           report_paths: /home/runner/.ansible/collections/ansible_collections/vexxhost/ceph/tests/output/junit/*.xml
