@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.2](https://github.com/vexxhost/ansible-collection-ceph/compare/v3.1.1...v3.1.2) (2025-06-24)
+
+
+### Bug Fixes
+
+* use ceph_mgr_fsid in mgr role ([e8aabd0](https://github.com/vexxhost/ansible-collection-ceph/commit/e8aabd01cf4fec4722ae6d3078c63c434df227b4))
+
 ## [3.1.1](https://github.com/vexxhost/ansible-collection-ceph/compare/v3.1.0...v3.1.1) (2025-06-24)
 
 
