@@ -24,7 +24,6 @@
 - name: Install packages
   ansible.builtin.package:
     name: "{{ cephadm_packages }}"
-    install_recommends: false
 
 - name: Ensure services are started
   ansible.builtin.service:
