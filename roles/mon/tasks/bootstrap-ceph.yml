@@ -32,7 +32,7 @@
         mode: "0640"
       loop: "{{ ceph_mon_conf_overrides }}"
 
-    - name: Run Bootstrap coomand
+    - name: Run Bootstrap command
       ansible.builtin.command:
         cmd: |
           cephadm bootstrap
