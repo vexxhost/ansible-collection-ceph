@@ -70,6 +70,24 @@ provisioner:
             option: mon data avail warn
             value: 10
       controllers:
+        ceph_dashboard_users:
+          admin:
+            password: insecurepassword
+            roles:
+              - administrator
+        ceph_service_settings:
+          mgr:
+            settings:
+              - name: mgr/dashboard/standby_behaviour
+                value: error
+              - name: mgr/dashboard/FEATURE_TOGGLE_CEPHFS
+                value: false
+              - name: mgr/dashboard/FEATURE_TOGGLE_ISCSI
+                value: false
+              - name: mgr/dashboard/FEATURE_TOGGLE_MIRRORING
+                value: false
+              - name: mgr/dashboard/FEATURE_TOGGLE_NFS
+                value: false
       cephs:
         ceph_osd_devices:
           - "/dev/ceph-{{ inventory_hostname_short }}-osd0/data"

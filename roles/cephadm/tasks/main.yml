@@ -24,7 +24,6 @@
 - name: Install packages
   ansible.builtin.package:
     name: "{{ cephadm_packages }}"
-    install_recommends: false
 
 - name: Ensure services are started
   ansible.builtin.service:
@@ -35,7 +34,8 @@
 - name: Download "cephadm"
   ansible.builtin.get_url:
     url: "https://download.ceph.com/rpm-{{ cephadm_version }}/el9/noarch/cephadm"
-    dest: /usr/local/bin/cephadm
+    # NOTE(fitbeard): We use sudo and on RHEL default sudoers 'secure_path = /sbin:/bin:/usr/sbin:/usr/bin'
+    dest: /usr/bin/cephadm
     mode: '0755'
     force: true
 
