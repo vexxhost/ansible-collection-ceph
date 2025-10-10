@@ -1,0 +1,3 @@
+ancestorEntries = []
+ourEntries = [".pre-commit-config.yaml"]
+theirEntries = [".pre-commit-config.yaml"]

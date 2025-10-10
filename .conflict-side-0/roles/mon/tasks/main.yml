@@ -1,0 +1,121 @@
+# Copyright (c) 2022 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+- name: Get `cephadm ls` status
+  ansible.builtin.command: cephadm ls
+  register: cephadm_ls_stat
+  changed_when: false
+
+- name: Parse the `cephadm ls` output
+  ansible.builtin.set_fact:
+    cephadm_mon_info: "{{ cephadm_ls_stat.stdout | from_json | community.general.json_query(mon_query) }}"
+    cephadm_mgr_info: "{{ cephadm_ls_stat.stdout | from_json | community.general.json_query(mgr_query) }}"
+  vars:
+    mon_query: "[?name == 'mon.{{ inventory_hostname_short }}']"
+    mgr_query: "[?name == 'mgr.{{ inventory_hostname_short }}']"
+
+- name: Adopt monitor
+  when:
+    - cephadm_mon_info | length > 0
+    - (cephadm_mon_info | first).style == "legacy"
+  block:
+    - name: Assimilate existing configs in `ceph.conf`
+      run_once: true
+      ansible.builtin.command: cephadm shell --fsid "{{ ceph_mon_fsid }}" -- ceph config assimilate-conf -i /etc/ceph/ceph.conf
+      changed_when: false
+
+    - name: Adopt monitor to cluster
+      throttle: 1
+      ansible.builtin.command:
+        cmd: cephadm adopt --style legacy --name "{{ (cephadm_mon_info | first).name }}"
+      changed_when: false
+
+- name: Adopt manager
+  when:
+    - cephadm_mgr_info | length > 0
+    - (cephadm_mgr_info | first).style == "legacy"
+  block:
+    - name: Adopt manager to cluster
+      throttle: 1
+      ansible.builtin.command:
+        cmd: cephadm adopt --style legacy --name "{{ (cephadm_mgr_info | first).name }}"
+      changed_when: false
+
+    - name: Enable "cephadm" mgr module
+      run_once: true
+      ansible.builtin.command: cephadm shell -- ceph mgr module enable cephadm
+      changed_when: false
+
+    - name: Set orchestrator backend to "cephadm"
+      run_once: true
+      ansible.builtin.command: cephadm shell -- ceph orch set backend cephadm
+      changed_when: false
+
+    - name: Use `cephadm` user for cephadm
+      run_once: true
+      ansible.builtin.command: cephadm shell -- ceph cephadm set-user cephadm
+      changed_when: false
+
+    - name: Generate "cephadm" key
+      run_once: true
+      ansible.builtin.command: cephadm shell -- ceph cephadm generate-key
+      changed_when: false
+
+- name: Set Ceph Monitor IP address
+  ansible.builtin.set_fact:
+    ceph_mon_ip_address: "{{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
+
+- name: Check if any node is bootstrapped
+  run_once: true
+  ansible.builtin.stat:
+    path: "/var/lib/ceph/{{ ceph_mon_fsid }}/mon.{{ hostvars[item]['inventory_hostname_short'] }}/store.db"
+  register: _ceph_mon_stat
+  loop: "{{ groups[ceph_mon_group] }}"
+  delegate_to: "{{ item }}"
+
+- name: Select pre-existing bootstrap node if exists
+  ansible.builtin.set_fact:
+    _ceph_mon_bootstrap_node: "{{ _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first | default(groups[ceph_mon_group][0]) }}"  # yamllint disable-line rule:line-length
+
+- name: Bootstrap cluster
+  ansible.builtin.include_tasks: bootstrap-ceph.yml
+  when:
+    - _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | length == 0
+
+- name: Install Ceph host
+  ansible.builtin.include_role:
+    name: vexxhost.ceph.cephadm_host
+  vars:
+    cephadm_host_admin_host: "{{ _ceph_mon_bootstrap_node }}"
+    cephadm_host_labels:
+      - _admin
+      - mon
+
+- name: Configure "mon" label for monitors
+  delegate_to: "{{ _ceph_mon_bootstrap_node }}"
+  run_once: true
+  changed_when: false
+  ansible.builtin.command: |
+    cephadm shell
+      --fsid "{{ ceph_mon_fsid }}"
+      --config "/var/lib/ceph/{{ ceph_mon_fsid }}/mon.{{ hostvars[_ceph_mon_bootstrap_node]['inventory_hostname_short'] }}/config"
+      -- ceph orch apply mon --placement="label:mon"
+
+- name: Validate monitor exist
+  ansible.builtin.command: cephadm shell -- ceph orch ps --daemon_type mon --hostname "{{ inventory_hostname_short }}"
+  register: ps_result
+  until: ps_result.stdout | length > 0
+  retries: "{{ ceph_mon_check_retry | default(120) }}"
+  delay: 3
+  changed_when: false

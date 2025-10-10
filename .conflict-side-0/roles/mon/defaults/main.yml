@@ -1,0 +1,29 @@
+# Copyright (c) 2023 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+# User for SSH access
+cephadm_ssh_user: cephadm
+
+# Inventory group for Ceph monitors
+ceph_mon_group: "{{ ceph_control_plane_group | default('controllers') }}"
+
+# Configuration optinos for Ceph
+ceph_mon_conf_overrides: "{{ ceph_conf_overrides | default([]) }}"
+
+# Filesystem ID
+ceph_mon_fsid: "{{ ceph_fsid }}"
+
+# Network definitions
+ceph_mon_public_network: "{{ ceph_public_network | default('0.0.0.0/0') }}"
+ceph_mon_cluster_network: "{{ ceph_cluster_network | default(ceph_mon_public_network) }}"

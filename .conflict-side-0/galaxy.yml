@@ -1,0 +1,28 @@
+namespace: vexxhost
+name: ceph
+version: 3.1.2
+readme: README.md
+authors:
+  - Mohammed Naser <mnaser@vexxhost.com>
+description: Ansible collection for deploying Ceph clusters
+license:
+  - GPL-3.0-or-later
+dependencies:
+  community.general: '>=4.5.0'
+  ansible.utils: 6.0.0
+  vexxhost.containers: '>=1.1.1'
+tags:
+  - application
+  - cloud
+  - infrastructure
+  - linux
+repository: https://github.com/vexxhost/ansible-collection-ceph
+documentation: https://github.com/vexxhost/ansible-collection-ceph/tree/main/docs
+homepage: https://github.com/vexxhost/ansible-collection-ceph
+issues: https://github.com/vexxhost/ansible-collection-ceph/issues
+build_ignore:
+  - .github
+  - molecule
+  - .pre-commit-config.yaml
+  - .release-please-manifest.json
+  - release-please-config.json

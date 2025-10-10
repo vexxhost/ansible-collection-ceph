@@ -1,0 +1,65 @@
+# Copyright (c) 2023 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+# NOTE(mnaser): This playbook is strictly used for testing purposes, it creates
+#               a few volume groups which can be used to create OSDs.
+
+- name: Destroy devices for Ceph
+  hosts: "{{ ceph_osd_group | default('cephs') }}"
+  ignore_errors: true
+  become: true
+  vars:
+    ceph_osds: ["osd0", "osd1", "osd2"]
+  tasks:
+    - name: Shutdown all OSDs
+      ansible.builtin.service:
+        name: ceph.target
+        state: stopped
+
+    - name: Get list of all running containers
+      ansible.builtin.command:
+        cmd: docker ps --format "{{ '{{' }} .Names {{ '}}' }}"
+      register: _docker_ps
+      retries: 60
+      delay: 5
+      until: _docker_ps.stdout_lines | length == 0
+      changed_when: false
+      failed_when:
+        - _docker_ps.rc != 0
+        - _docker_ps.stdout_lines | length > 0
+
+    - name: Get list of all loopback devices
+      ansible.builtin.command: losetup -J
+      changed_when: false
+      register: _losetup_l
+
+    - name: Delete a logical volume for each loop device
+      community.general.lvol:
+        vg: ceph-{{ inventory_hostname_short }}-{{ item }}
+        lv: data
+        force: true
+        state: absent
+      loop: "{{ ceph_osds }}"
+
+    - name: Delete a volume group for each loop device
+      community.general.lvg:
+        vg: ceph-{{ inventory_hostname_short }}-{{ item }}
+        state: absent
+      loop: "{{ ceph_osds }}"
+
+    - name: Stop loopback devices for all images
+      vexxhost.ceph.loop_device:
+        path: /opt/{{ inventory_hostname_short }}-{{ item }}.img
+        state: absent
+      loop: "{{ ceph_osds }}"
