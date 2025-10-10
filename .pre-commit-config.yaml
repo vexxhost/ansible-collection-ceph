@@ -12,8 +12,8 @@ repos:
         stages:
           - commit-msg
 
-  - repo: https://github.com/ansible/ansible-lint
-    rev: v6.13.1
+  - repo: https://github.com/ansible/ansible-lint.git
+    rev: v25.6.1
     hooks:
       - id: ansible-lint
         files: \.(yaml|yml)$

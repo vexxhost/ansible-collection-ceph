@@ -1,0 +1,11 @@
+# Copyright (c) 2025 VEXXHOST, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+cephadm_packages:
+  - lvm2
+  - openssh-server
+  - chrony
+
+cephadm_services:
+  - chronyd
+  - sshd

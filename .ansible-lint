@@ -3,3 +3,8 @@ exclude_paths:
   - .github
   - charts
   - molecule
+
+# NOTE(fitbeard): We need refactor role and variable names to be compliant
+#                 with ansible-lint rules. For now, we just skip the rule.
+skip_list:
+  - var-naming[no-role-prefix]
