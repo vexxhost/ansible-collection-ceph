@@ -39,6 +39,11 @@
     mode: '0755'
     force: true
 
+- name: Remove cephadm from old path
+  ansible.builtin.file:
+    path: /usr/local/bin/cephadm
+    state: absent
+
 - name: Ensure "cephadm" user is present
   ansible.builtin.user:
     name: cephadm
