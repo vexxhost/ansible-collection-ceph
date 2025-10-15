@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.0](https://github.com/vexxhost/ansible-collection-ceph/compare/v3.1.2...v3.2.0) (2025-10-15)
+
+
+### Features
+
+* support redhat family os ([#58](https://github.com/vexxhost/ansible-collection-ceph/issues/58)) ([a66e1c2](https://github.com/vexxhost/ansible-collection-ceph/commit/a66e1c2db741ab4bc891ac9d4ed59da46d16b79c))
+
 ## [3.1.2](https://github.com/vexxhost/ansible-collection-ceph/compare/v3.1.1...v3.1.2) (2025-06-24)
 
 
