@@ -24,9 +24,13 @@
       ansible.builtin.debug:
         var: _ceph_health
 
+    # NOTE(fitbeard): IN HA scenario running on GHA runners we might end up
+    #                 with a message about being low on available space.
+    #                 'HEALTH_WARN mons mon1,mon2,mon3 are low on available space'
+    #                 This is acceptable for our testing purposes.
     - name: Assert that the cluster status is healthy
       ansible.builtin.assert:
         that:
-          - _ceph_health.stdout == 'HEALTH_OK'
+          - _ceph_health.stdout == 'HEALTH_OK' or 'low on available space' in _ceph_health.stdout
   environment:
     CEPHADM_IMAGE: "quay.io/ceph/ceph:v{{ ceph_version }}"
