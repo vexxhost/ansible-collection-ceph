@@ -3,7 +3,7 @@
 
 - name: Deploy Ceph monitors & managers
   hosts: "{{ ceph_control_plane_group | default('controllers') }}"
-  strategy: "{{ ceph_custom_ansible_strategy | default('ansible.builtin.linear') }}"
+  strategy: "{{ ceph_custom_ansible_strategy | default('serverscom.mitogen.mitogen_linear') }}"
   become: true
   roles:
     - role: mon
@@ -18,7 +18,7 @@
 
 - name: Deploy Ceph OSDs
   hosts: "{{ ceph_osd_group | default('cephs') }}"
-  strategy: "{{ ceph_custom_ansible_strategy | default('ansible.builtin.linear') }}"
+  strategy: "{{ ceph_custom_ansible_strategy | default('serverscom.mitogen.mitogen_linear') }}"
   become: true
   roles:
     - role: osd
@@ -30,7 +30,7 @@
 
 - name: Configure Ceph settings
   hosts: "{{ ceph_control_plane_group | default('controllers') }}"
-  strategy: "{{ ceph_custom_ansible_strategy | default('ansible.builtin.linear') }}"
+  strategy: "{{ ceph_custom_ansible_strategy | default('serverscom.mitogen.mitogen_linear') }}"
   become: true
   roles:
     - role: ceph_settings
