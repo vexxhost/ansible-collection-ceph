@@ -48,6 +48,6 @@
   vexxhost.ceph.mgr_module:
     name: "{{ item.name }}"
     state: "{{ item.state | default('enable') }}"
-  loop: "{{ cephadm_mgr_modules }}"
+  loop: "{{ ceph_mgr_modules }}"
   loop_control:
     loop_var: item

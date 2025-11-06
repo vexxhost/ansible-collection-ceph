@@ -15,7 +15,7 @@
 # Filesystem ID
 ceph_mgr_fsid: "{{ ceph_fsid }}"
 
-cephadm_mgr_modules:
+ceph_mgr_modules:
   - name: diskprediction_local
   - name: dashboard
   - name: prometheus
