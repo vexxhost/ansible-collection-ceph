@@ -24,50 +24,11 @@
   ansible.builtin.set_fact:
     _cephadm_host_admin_host: "{{ _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first | default(groups[ceph_osd_mons_group][0]) }}"  # yamllint disable-line rule:line-length
 
-- name: Get `cephadm ls` status
-  ansible.builtin.command: cephadm ls
-  register: cephadm_ls_stat
-  changed_when: false
-
-- name: Parse the `cephadm ls` output
-  ansible.builtin.set_fact:
-    cephadm_info: "{{ cephadm_ls_stat.stdout | from_json | community.general.json_query(osd_query) }}"
-  vars:
-    osd_query: "[?starts_with(name, 'osd.')]"
-
 - name: Install Ceph host
   ansible.builtin.include_role:
     name: vexxhost.ceph.cephadm_host
   vars:
     cephadm_host_admin_host: "{{ _cephadm_host_admin_host }}"
-
-- name: Adopt OSDs to cluster
-  throttle: 1
-  when: item.style == "legacy"
-  changed_when: false
-  ansible.builtin.command:
-    cmd: cephadm adopt --style legacy --name "{{ item.name }}"
-  loop: "{{ cephadm_info }}"
-  loop_control:
-    label: "{{ item.name }}"
-    pause: 5
-
-- name: Wait until OSD added to cephadm
-  when: item.style == "legacy"
-  ansible.builtin.command: |
-    cephadm shell
-      --fsid "{{ ceph_osd_fsid }}"
-      --config "/var/lib/ceph/{{ ceph_osd_fsid }}/mon.{{ hostvars[_cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
-      -- ceph orch ps --daemon_type osd --format json
-  register: _orch_osd_ps
-  delegate_to: "{{ _cephadm_host_admin_host }}"
-  until: item.name in (_orch_osd_ps.stdout | from_json | map(attribute='daemon_name'))
-  retries: "{{ ceph_osd_check_retry | default(120) }}"
-  delay: 5
-  changed_when: false
-  loop: "{{ cephadm_info }}"
-  loop_control:
-    label: "{{ item.name }}"
 
 - name: Ensure all OSDs are non-legacy
   ansible.builtin.command:
