@@ -43,10 +43,11 @@
   delay: 3
   changed_when: false
 
-- name: Enable the Ceph Manager prometheus module
-  ansible.builtin.command: |
-    cephadm shell
-      --fsid "{{ ceph_mgr_fsid }}"
-      --config "/var/lib/ceph/{{ ceph_mgr_fsid }}/mon.{{ inventory_hostname_short }}/config"
-      -- ceph mgr module enable prometheus
-  changed_when: false
+- name: Configure manager modules
+  run_once: true
+  vexxhost.ceph.mgr_module:
+    name: "{{ item.name }}"
+    state: "{{ item.state | default('enable') }}"
+  loop: "{{ ceph_mgr_modules }}"
+  loop_control:
+    loop_var: item
