@@ -47,7 +47,6 @@
   changed_when: false
 
 - name: Install OSDs
-  throttle: 1
   changed_when: false
   when: item not in ceph_lvm_stat.stdout
   delegate_to: "{{ _cephadm_host_admin_host }}"
