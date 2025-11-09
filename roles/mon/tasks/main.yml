@@ -45,12 +45,15 @@
 - name: Configure "mon" label for monitors
   delegate_to: "{{ _ceph_mon_bootstrap_node }}"
   run_once: true
-  changed_when: false
-  ansible.builtin.command: |
-    cephadm shell
-      --fsid "{{ ceph_mon_fsid }}"
-      --config "/var/lib/ceph/{{ ceph_mon_fsid }}/mon.{{ hostvars[_ceph_mon_bootstrap_node]['inventory_hostname_short'] }}/config"
-      -- ceph orch apply mon --placement="label:mon"
+  vexxhost.ceph.orch_apply:
+    fsid: "{{ ceph_mon_fsid }}"
+    image: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('18.2.1'))) }}"
+    docker: true
+    spec: |
+      service_type: mon
+      service_name: mon
+      placement:
+        label: mon
 
 - name: Validate monitor exist
   ansible.builtin.command: cephadm shell -- ceph orch ps --daemon_type mon --hostname "{{ inventory_hostname_short }}"
