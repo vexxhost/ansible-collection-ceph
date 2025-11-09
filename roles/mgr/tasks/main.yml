@@ -22,14 +22,17 @@
       - mgr
 
 - name: Configure "mgr" label for managers
-  changed_when: false
   delegate_to: "{{ _ceph_mon_bootstrap_node | default(groups[ceph_mon_group][0]) }}"
   run_once: true
-  ansible.builtin.command: |
-    cephadm shell
-      --fsid "{{ ceph_mgr_fsid }}"
-      --config "/var/lib/ceph/{{ ceph_mgr_fsid }}/mon.{{ hostvars[_ceph_mon_bootstrap_node]['inventory_hostname_short'] }}/config"
-      -- ceph orch apply mgr --placement="label:mgr"
+  vexxhost.ceph.orch_apply:
+    fsid: "{{ ceph_mgr_fsid }}"
+    image: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('18.2.1'))) }}"
+    docker: true
+    spec: |
+      service_type: mgr
+      service_name: mgr
+      placement:
+        label: mgr
 
 - name: Validate manager exist
   ansible.builtin.command: |
