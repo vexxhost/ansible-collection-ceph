@@ -1,5 +1,20 @@
 # Changelog
 
+## [4.0.0](https://github.com/vexxhost/ansible-collection-ceph/compare/v3.2.0...v4.0.0) (2025-11-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* drop code for adoption ([#70](https://github.com/vexxhost/ansible-collection-ceph/issues/70))
+
+### Features
+
+* add mgr module ([#74](https://github.com/vexxhost/ansible-collection-ceph/issues/74)) ([0097941](https://github.com/vexxhost/ansible-collection-ceph/commit/009794110ff8d469d608c8a3307e6c0622fb10c4))
+* add speedups ([#75](https://github.com/vexxhost/ansible-collection-ceph/issues/75)) ([df95334](https://github.com/vexxhost/ansible-collection-ceph/commit/df953345fb83c987c04c519f41d0f27b71842ddc))
+* drop code for adoption ([#70](https://github.com/vexxhost/ansible-collection-ceph/issues/70)) ([a00fcda](https://github.com/vexxhost/ansible-collection-ceph/commit/a00fcdabcb0f9d36497eb07f803bab932a594865))
+* speedup cephadm commands ([#71](https://github.com/vexxhost/ansible-collection-ceph/issues/71)) ([23bd729](https://github.com/vexxhost/ansible-collection-ceph/commit/23bd7294cc1834a7dcab215583b6ec5266809e54))
+* update ansible modules ([#73](https://github.com/vexxhost/ansible-collection-ceph/issues/73)) ([e8f4730](https://github.com/vexxhost/ansible-collection-ceph/commit/e8f4730dee8112387d6c99d29bb380a8ed537f99))
+
 ## [3.2.0](https://github.com/vexxhost/ansible-collection-ceph/compare/v3.1.2...v3.2.0) (2025-10-15)
 
 
