@@ -1,0 +1,62 @@
+# Copyright (c) 2025 VEXXHOST, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+# ceph_service_settings:
+#   client.rgw:
+#     settings:
+#       - name: rgw_bucket_default_quota_max_objects
+#         value: 100000 # 100k objects per bucket
+#       - name: rgw_user_default_quota_max_objects
+#         value: 100000000 # 100 million objects per user
+#       - name: rgw_user_default_quota_max_size
+#         value: 549755813888 # 512 GiB
+#       - name: rgw_trust_forwarded_https
+#         value: true
+#       - name: rgw_resolve_cname
+#         value: true
+#       - name: rgw_remote_addr_param
+#         value: HTTP_X_FORWARDED_FOR
+#   client.rgw.rgw: # Settings per service as they are shown in `ceph orch ls`.
+#     settings:
+#       # - name: rgw_dns_name
+#       #   value: storage.hostname.domain.tld
+#       - name: rgw_swift_account_in_url
+#         value: false
+#   mgr:
+#     settings:
+#       - name: mgr/dashboard/standby_behaviour
+#         value: error
+#       - name: mgr/dashboard/RGW_API_SSL_VERIFY
+#         value: false
+#       - name: mgr/dashboard/FEATURE_TOGGLE_CEPHFS
+#         value: false
+#       - name: mgr/dashboard/FEATURE_TOGGLE_ISCSI
+#         value: false
+#       - name: mgr/dashboard/FEATURE_TOGGLE_MIRRORING
+#         value: false
+#       - name: mgr/dashboard/FEATURE_TOGGLE_NFS
+#         value: false
+#       - name: mgr/prometheus/rbd_stats_pools
+#         value: "kube"
+#       - name: mgr/cephadm/device_enhanced_scan
+#         value: true
+#     osd:
+#       settings:
+#         - name: osd_recovery_sleep_ssd
+#           value: 0
+#         - name: osd_recovery_sleep_hdd
+#           value: 0.1
+#         - name: mon_osd_down_out_interval
+#           value: 1800
+#         - name: osd_deep_scrub_large_omap_object_key_threshold
+#           value: 2000000
+
+# ceph_dashboard_users:
+#   admin:
+#     password: P@ssw0rd
+#     roles:
+#       - administrator
+#   test:
+#     password: testsecret
+#     roles:
+#       - read-only

@@ -1,0 +1,24 @@
+# Copyright (c) 2025 VEXXHOST, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+- name: Configure manager dashboard users
+  run_once: true
+  when: ceph_dashboard_users is defined and ceph_dashboard_users | length > 0
+  vexxhost.ceph.dashboard_user:
+    name: "{{ item.key }}"
+    password: "{{ item.value.password }}"
+    roles: "{{ item.value.roles }}"
+  with_dict: "{{ ceph_dashboard_users }}"
+  no_log: true
+
+- name: Configure settings for Ceph services
+  run_once: true
+  when: ceph_service_settings is defined and ceph_service_settings | length > 0
+  vexxhost.ceph.config:
+    who: "{{ item.0.key }}"
+    option: "{{ item.1.name }}"
+    value: "{{ item.1.value }}"
+  with_subelements:
+    - "{{ ceph_service_settings | dict2items }}"
+    - value.settings
+  no_log: "{{ item.1.sensitive | default(false) }}"
