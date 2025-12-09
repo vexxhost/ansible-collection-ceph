@@ -14,7 +14,7 @@
 
 - name: Set Ceph Monitor IP address
   ansible.builtin.set_fact:
-    ceph_mon_ip_address: "{{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
+    ceph_mon_ip_address: "{{ [ ansible_all_ipv4_addresses, ansible_all_ipv6_addresses ] | flatten | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
 
 - name: Check if any node is bootstrapped
   run_once: true
@@ -26,7 +26,7 @@
 
 - name: Select pre-existing bootstrap node if exists
   ansible.builtin.set_fact:
-    _ceph_mon_bootstrap_node: "{{ _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first | default(groups[ceph_mon_group][0]) }}"  # yamllint disable-line rule:line-length
+    _ceph_mon_bootstrap_node: "{{ _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first | default(groups[ceph_mon_group][0]) }}" # yamllint disable-line rule:line-length
 
 - name: Bootstrap cluster
   ansible.builtin.include_tasks: bootstrap-ceph.yml

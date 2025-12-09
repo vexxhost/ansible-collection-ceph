@@ -49,5 +49,5 @@
       --config "/var/lib/ceph/{{ cephadm_host_fsid }}/mon.{{ hostvars[cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
       -- ceph orch host add
       {{ inventory_hostname_short }}
-      {{ ansible_all_ipv4_addresses | ansible.utils.ipaddr(ceph_mon_public_network) | first }}
+      {{ [ ansible_all_ipv4_addresses, ansible_all_ipv6_addresses ] | flatten | ansible.utils.ipaddr(ceph_mon_public_network) | first }}
       {% if cephadm_host_labels | length > 0 %}--labels={{ cephadm_host_labels | join(',') }}{% endif %}
