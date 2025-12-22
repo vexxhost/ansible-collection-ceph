@@ -2,5 +2,27 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "local>vexxhost/.github"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^\\.zuul\\.yaml$"],
+      "matchStrings": [
+        "ceph_version:\\s*(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "ceph/ceph",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^roles/repository/defaults/main\\.yml$"],
+      "matchStrings": [
+        "default\\('(?<currentValue>\\d+\\.\\d+\\.\\d+)'\\)"
+      ],
+      "depNameTemplate": "ceph/ceph",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    }
   ]
 }

@@ -1,0 +1,41 @@
+# Copyright (c) 2025 VEXXHOST, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+- name: Verify
+  hosts: controllers
+  become: true
+  tasks:
+    - name: Get cluster health status
+      ansible.builtin.command: cephadm shell -- ceph health
+      register: _ceph_health
+      changed_when: false
+
+    - name: Print cluster health status
+      ansible.builtin.debug:
+        var: _ceph_health
+
+    - name: Assert that the cluster status is healthy
+      ansible.builtin.assert:
+        that:
+          - _ceph_health.stdout == 'HEALTH_OK'
+
+    - name: Create a test Ceph pool
+      vexxhost.ceph.pool:
+        name: test-pool
+        state: present
+        size: "1"
+        min_size: "1"
+        application: rbd
+        pg_autoscale_mode: "on"
+
+    - name: Create a test Ceph key
+      vexxhost.ceph.key:
+        name: client.test
+        state: present
+        caps:
+          mon: "allow r"
+          osd: "allow rwx pool=test-pool"
+  environment:
+    CEPHADM_IMAGE: "quay.io/ceph/ceph:v{{ ceph_version }}"
+    CEPH_CONTAINER_IMAGE: "quay.io/ceph/ceph:v{{ ceph_version }}"
+    CEPH_CONTAINER_BINARY: docker
