@@ -11,7 +11,7 @@
         "ceph_version:\\s*(?<currentValue>\\d+\\.\\d+\\.\\d+)"
       ],
       "depNameTemplate": "ceph/ceph",
-      "datasourceTemplate": "github-releases",
+      "datasourceTemplate": "github-tags",
       "extractVersionTemplate": "^v(?<version>.*)$"
     },
     {
@@ -21,7 +21,7 @@
         "default\\('(?<currentValue>\\d+\\.\\d+\\.\\d+)'\\)"
       ],
       "depNameTemplate": "ceph/ceph",
-      "datasourceTemplate": "github-releases",
+      "datasourceTemplate": "github-tags",
       "extractVersionTemplate": "^v(?<version>.*)$"
     }
   ]
