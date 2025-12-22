@@ -27,3 +27,12 @@ ceph_mon_fsid: "{{ ceph_fsid }}"
 # Network definitions
 ceph_mon_public_network: "{{ ceph_public_network | default('0.0.0.0/0') }}"
 ceph_mon_cluster_network: "{{ ceph_cluster_network | default(ceph_mon_public_network) }}"
+
+# Skip monitor network validation during bootstrap. Enable this if your public_network
+# is assigned to a loopback interface, as cephadm does not consider loopback interfaces
+# valid during network validation. When enabled, public_network will be configured
+# post-bootstrap via "ceph config set". Do not include public_network in ceph_conf_overrides
+# when using this option.
+#
+# See: https://github.com/vexxhost/ansible-collection-ceph/issues/82
+ceph_mon_bootstrap_skip_mon_network: false
