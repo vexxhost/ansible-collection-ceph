@@ -35,6 +35,21 @@
         caps:
           mon: "allow r"
           osd: "allow rwx pool=test-pool"
+
+    - name: Retrieve info for the test Ceph key
+      vexxhost.ceph.key_info:
+        name: client.test
+        state: info
+      register: _key_info
+
+    - name: Assert that key_info returns the correct key
+      ansible.builtin.assert:
+        that:
+          - _key_info.rc == 0
+          - (_key_info.stdout | from_json)[0].entity == 'client.test'
+          - (_key_info.stdout | from_json)[0].key is defined
+          - (_key_info.stdout | from_json)[0].caps.mon == 'allow r'
+          - (_key_info.stdout | from_json)[0].caps.osd == 'allow rwx pool=test-pool'
   environment:
     CEPHADM_IMAGE: "quay.io/ceph/ceph:v{{ ceph_version }}"
     CEPH_CONTAINER_IMAGE: "quay.io/ceph/ceph:v{{ ceph_version }}"
