@@ -13,16 +13,6 @@
       "depNameTemplate": "ceph/ceph",
       "datasourceTemplate": "github-tags",
       "extractVersionTemplate": "^v(?<version>.*)$"
-    },
-    {
-      "customType": "regex",
-      "fileMatch": ["^roles/repository/defaults/main\\.yml$"],
-      "matchStrings": [
-        "default\\('(?<currentValue>\\d+\\.\\d+\\.\\d+)'\\)"
-      ],
-      "depNameTemplate": "ceph/ceph",
-      "datasourceTemplate": "github-tags",
-      "extractVersionTemplate": "^v(?<version>.*)$"
     }
   ]
 }
