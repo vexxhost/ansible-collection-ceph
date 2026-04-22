@@ -21,6 +21,29 @@
     - "{{ ansible_facts['distribution'] | lower }}.yml"
     - "{{ ansible_facts['os_family'] | lower }}.yml"
 
+# NOTE(ricolin): Ubuntu 26.04 ships uutils coreutils 0.7.0 as
+# /usr/bin/install, which rejects the numeric UID/GID arguments that
+# `cephadm bootstrap` passes (e.g. `install -o 167 -g 167 ...`) with
+# "install: invalid user: '167'". Swap to coreutils-from-gnu so GNU
+# install is used. Both packages provide `coreutils-from`, so we have to
+# mark coreutils-from-uutils for removal in the same transaction
+# (trailing `-`) and pass --allow-remove-essential because the uutils
+# package is marked essential.
+- name: Ensure GNU coreutils is used on Ubuntu 26.04
+  ansible.builtin.command:
+    argv:
+      - apt-get
+      - install
+      - --yes
+      - --allow-remove-essential
+      - coreutils-from-gnu
+      - coreutils-from-uutils-
+  register: _cephadm_gnu_coreutils
+  changed_when: "'0 upgraded, 0 newly installed' not in _cephadm_gnu_coreutils.stdout"
+  when:
+    - ansible_facts['distribution'] == 'Ubuntu'
+    - ansible_facts['distribution_version'] is version('26.04', '==')
+
 - name: Install packages
   ansible.builtin.package:
     name: "{{ cephadm_packages }}"
