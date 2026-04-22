@@ -23,6 +23,8 @@ galaxy_info:
       versions:
         - focal
         - jammy
+        - noble
+        - resolute
 
 dependencies:
   - role: vexxhost.containers.docker
