@@ -23,7 +23,7 @@
       tags:
         - ceph-mgr
   environment:
-    CEPH_CONTAINER_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('18.2.1'))) }}"
+    CEPH_CONTAINER_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.1'))) }}"
     CEPH_CONTAINER_BINARY: docker
 
 - name: Deploy Ceph OSDs
@@ -34,5 +34,5 @@
       tags:
         - ceph-osd
   environment:
-    CEPH_CONTAINER_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('18.2.1'))) }}"
+    CEPH_CONTAINER_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.1'))) }}"
     CEPH_CONTAINER_BINARY: docker
