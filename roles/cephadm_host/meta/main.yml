@@ -23,3 +23,5 @@ galaxy_info:
       versions:
         - focal
         - jammy
+        - noble
+        - resolute
