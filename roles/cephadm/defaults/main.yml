@@ -2,3 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 cephadm_version: "{{ ceph_version | default('18.2.1') }}"
+
+cephadm_http_proxy: "{{ http_proxy | default(omit) }}"
+cephadm_https_proxy: "{{ https_proxy | default(omit) }}"
+cephadm_no_proxy: "{{ no_proxy | default(omit) }}"
