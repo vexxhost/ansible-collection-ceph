@@ -27,6 +27,6 @@
   ansible.builtin.import_playbook: vexxhost.ceph.create_fake_devices
 
 - name: Re-run fake devices with loopback precheck disabled
-  import_playbook: vexxhost.ceph.create_fake_devices
+  ansible.builtin.import_playbook: vexxhost.ceph.create_fake_devices
   vars:
     ceph_skip_loopback_check: true
