@@ -26,7 +26,13 @@
 - name: Create fake devices
   ansible.builtin.import_playbook: vexxhost.ceph.create_fake_devices
 
+- name: Enable loopback precheck skip for coverage
+  hosts: cephs
+  gather_facts: false
+  tasks:
+    - name: Set loopback precheck skip variable
+      ansible.builtin.set_fact:
+        ceph_skip_loopback_check: true
+
 - name: Re-run fake devices with loopback precheck disabled
   ansible.builtin.import_playbook: vexxhost.ceph.create_fake_devices
-  vars:
-    ceph_skip_loopback_check: true
