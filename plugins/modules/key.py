@@ -80,11 +80,12 @@ options:
             the keyring if the secret changes, the same goes for
             the capabilities.
             If 'absent' is used, the module will simply delete the keyring.
+            If 'info' is used, the module will return in a json format the
+            description of a given keyring.
             If 'list' is used, the module will list all the keys and will
             return a json output.
             If 'generate_secret' is used, the module will simply output a cephx keyring.
         required: false
-        choices: ['present', 'update', 'absent', 'fetch_initial_keys', 'generate_secret']
         default: present
     caps:
         description:
@@ -180,6 +181,11 @@ caps:
 - name: fetch cephx keys
   ceph_key:
     state: fetch_initial_keys
+
+- name: info cephx key
+  ceph_key:
+    name: client.admin
+    state: info
 '''
 
 RETURN = '''#  '''
@@ -187,6 +193,8 @@ RETURN = '''#  '''
 
 CEPH_INITIAL_KEYS = ['client.admin', 'client.bootstrap-mds', 'client.bootstrap-mgr',  # noqa: E501
                      'client.bootstrap-osd', 'client.bootstrap-rbd', 'client.bootstrap-rbd-mirror', 'client.bootstrap-rgw']  # noqa: E501
+STATE_CHOICES = ['present', 'update', 'absent', 'info', 'list',
+                 'fetch_initial_keys', 'generate_secret']
 
 
 def str_to_bool(val):
@@ -465,8 +473,7 @@ def run_module():
     module_args = dict(
         cluster=dict(type='str', required=False, default='ceph'),
         name=dict(type='str', required=False),
-        state=dict(type='str', required=False, default='present', choices=['present', 'update', 'absent',  # noqa: E501
-                                                                           'fetch_initial_keys', 'generate_secret']),  # noqa: E501
+        state=dict(type='str', required=False, default='present'),
         caps=dict(type='dict', required=False, default=None),
         secret=dict(type='str', required=False, default=None, no_log=True),
         import_key=dict(type='bool', required=False, default=True),
@@ -496,8 +503,12 @@ def run_module():
     user_key = module.params.get('user_key')
     output_format = module.params.get('output_format')
 
+    if state not in STATE_CHOICES:
+        fatal("value of state must be one of: {}, got: {}".format(
+            ', '.join(STATE_CHOICES), state), module)
+
     # Can't use required_if with 'name' for some reason...
-    if state in ['present', 'absent', 'update'] and not name:
+    if state in ['present', 'absent', 'update', 'info'] and not name:
         fatal(f'"state" is "{state}" but "name" is not defined.', module)
 
     changed = False
@@ -534,7 +545,15 @@ def run_module():
     else:
         user_key_path = user_key
 
-    if (state in ["present", "update"]):
+    if state == "info":
+        rc, cmd, out, err = exec_commands(
+            module, info_key(cluster, name, user, user_key_path, output_format, container_image))  # noqa: E501
+
+    elif state == "list":
+        rc, cmd, out, err = exec_commands(
+            module, list_keys(cluster, user, user_key_path, container_image))
+
+    elif (state in ["present", "update"]):
         # if dest is not a directory, the user wants to change the file's name
         # (e,g: /etc/ceph/ceph.mgr.ceph-mon2.keyring)
         if not os.path.isdir(dest):

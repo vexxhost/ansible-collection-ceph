@@ -50,6 +50,21 @@
           - (_key_info.stdout | from_json)[0].key is defined
           - (_key_info.stdout | from_json)[0].caps.mon == 'allow r'
           - (_key_info.stdout | from_json)[0].caps.osd == 'allow rwx pool=test-pool'
+
+    - name: Retrieve info for the test Ceph key using the legacy key module
+      vexxhost.ceph.key:
+        name: client.test
+        state: info
+      register: _legacy_key_info
+
+    - name: Assert that the legacy key module info state returns the correct key
+      ansible.builtin.assert:
+        that:
+          - _legacy_key_info.rc == 0
+          - (_legacy_key_info.stdout | from_json)[0].entity == 'client.test'
+          - (_legacy_key_info.stdout | from_json)[0].key is defined
+          - (_legacy_key_info.stdout | from_json)[0].caps.mon == 'allow r'
+          - (_legacy_key_info.stdout | from_json)[0].caps.osd == 'allow rwx pool=test-pool'
   environment:
     CEPHADM_IMAGE: "quay.io/ceph/ceph:v{{ ceph_version }}"
     CEPH_CONTAINER_IMAGE: "quay.io/ceph/ceph:v{{ ceph_version }}"
