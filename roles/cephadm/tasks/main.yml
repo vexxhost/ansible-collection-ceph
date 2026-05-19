@@ -38,6 +38,7 @@
     dest: /usr/bin/cephadm
     mode: '0755'
     force: true
+  environment: "{{ _cephadm_environment }}"
 
 - name: Remove cephadm from old path
   ansible.builtin.file:
