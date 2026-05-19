@@ -38,10 +38,7 @@
     dest: /usr/bin/cephadm
     mode: '0755'
     force: true
-  environment:
-    http_proxy: "{{ cephadm_http_proxy }}"
-    https_proxy: "{{ cephadm_https_proxy }}"
-    no_proxy: "{{ cephadm_no_proxy }}"
+  environment: "{{ _cephadm_environment }}"
 
 - name: Remove cephadm from old path
   ansible.builtin.file:

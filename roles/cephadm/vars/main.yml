@@ -1,0 +1,15 @@
+# Copyright (c) 2026 VEXXHOST, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+_cephadm_environment: |
+  {% set res = {} -%}
+  {% if cephadm_http_proxy %}
+  {%   set _ = res.update({'http_proxy': cephadm_http_proxy}) %}
+  {% endif %}
+  {% if cephadm_https_proxy %}
+  {%   set _ = res.update({'https_proxy': cephadm_https_proxy}) %}
+  {% endif %}
+  {% if cephadm_no_proxy %}
+  {%   set _ = res.update({'no_proxy': cephadm_no_proxy}) %}
+  {% endif %}
+  {{ res }}
