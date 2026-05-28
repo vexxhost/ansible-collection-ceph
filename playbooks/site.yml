@@ -36,3 +36,14 @@
   environment:
     CEPH_CONTAINER_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('18.2.1'))) }}"
     CEPH_CONTAINER_BINARY: docker
+
+- name: Deploy Ceph exporters
+  hosts: "{{ ceph_control_plane_group | default('controllers') }}"
+  become: true
+  roles:
+    - role: ceph_exporter
+      tags:
+        - ceph-exporter
+  environment:
+    CEPH_CONTAINER_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('18.2.1'))) }}"
+    CEPH_CONTAINER_BINARY: docker

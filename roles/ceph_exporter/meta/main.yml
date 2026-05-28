@@ -1,4 +1,4 @@
-# Copyright (c) 2024 VEXXHOST, Inc.
+# Copyright (c) 2026 VEXXHOST, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -12,13 +12,17 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# Filesystem ID
-ceph_mgr_fsid: "{{ ceph_fsid }}"
+galaxy_info:
+  author: VEXXHOST, Inc.
+  description: Ansible role for Ceph exporter
+  license: Apache-2.0
+  min_ansible_version: 5.5.0
+  standalone: false
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
 
-ceph_mgr_modules:
-  - name: diskprediction_local
-  - name: dashboard
-  - name: prometheus
-  - name: iostat
-
-ceph_mgr_extra_container_args: []
+dependencies:
+  - role: cephadm

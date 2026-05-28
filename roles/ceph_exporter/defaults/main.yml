@@ -1,0 +1,32 @@
+# Copyright (c) 2026 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+ceph_exporter_enabled: true
+
+# Filesystem ID
+ceph_exporter_fsid: "{{ ceph_fsid }}"
+
+# Inventory group for Ceph monitors
+ceph_exporter_mon_group: "{{ ceph_control_plane_group | default('controllers') }}"
+
+ceph_exporter_admin_host: "{{ _ceph_mon_bootstrap_node | default(groups[ceph_exporter_mon_group][0]) }}"
+ceph_exporter_check_retry: "{{ ceph_mon_check_retry | default(120) }}"
+ceph_exporter_service_name: ceph-exporter
+ceph_exporter_placement:
+  host_pattern: "*"
+
+ceph_exporter_service_spec:
+  service_type: ceph-exporter
+  service_name: "{{ ceph_exporter_service_name }}"
+  placement: "{{ ceph_exporter_placement }}"
