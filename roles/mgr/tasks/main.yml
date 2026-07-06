@@ -33,12 +33,6 @@
       service_name: mgr
       placement:
         label: mgr
-      {% if ceph_mgr_extra_container_args | length > 0 %}
-      extra_container_args:
-      {% for extra_container_arg in ceph_mgr_extra_container_args %}
-        - "{{ extra_container_arg }}"
-      {% endfor %}
-      {% endif %}
 
 - name: Validate manager exist
   ansible.builtin.command: |

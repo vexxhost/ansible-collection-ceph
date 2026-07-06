@@ -12,8 +12,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-ceph_exporter_enabled: true
-
 # Filesystem ID
 ceph_exporter_fsid: "{{ ceph_fsid }}"
 
@@ -21,7 +19,6 @@ ceph_exporter_fsid: "{{ ceph_fsid }}"
 ceph_exporter_mon_group: "{{ ceph_control_plane_group | default('controllers') }}"
 
 ceph_exporter_admin_host: "{{ _ceph_mon_bootstrap_node | default(groups[ceph_exporter_mon_group][0]) }}"
-ceph_exporter_check_retry: "{{ ceph_mon_check_retry | default(120) }}"
 ceph_exporter_service_name: ceph-exporter
 ceph_exporter_placement:
   host_pattern: "*"

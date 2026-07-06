@@ -20,17 +20,3 @@
     image: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('18.2.1'))) }}"
     docker: true
     spec: "{{ ceph_exporter_service_spec | to_nice_yaml }}"
-  when: ceph_exporter_enabled | bool
-
-- name: Validate Ceph exporters exist
-  ansible.builtin.command: |
-    cephadm shell
-      --fsid "{{ ceph_exporter_fsid }}"
-      --config "/var/lib/ceph/{{ ceph_exporter_fsid }}/mon.{{ hostvars[ceph_exporter_admin_host]['inventory_hostname_short'] }}/config"
-      -- ceph orch ps --daemon_type ceph-exporter --format json
-  register: ceph_exporter_ps_result
-  until: ceph_exporter_ps_result.stdout | from_json | length > 0
-  retries: "{{ ceph_exporter_check_retry }}"
-  delay: 3
-  changed_when: false
-  when: ceph_exporter_enabled | bool

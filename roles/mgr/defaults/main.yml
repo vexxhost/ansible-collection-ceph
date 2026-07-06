@@ -20,5 +20,3 @@ ceph_mgr_modules:
   - name: dashboard
   - name: prometheus
   - name: iostat
-
-ceph_mgr_extra_container_args: []
