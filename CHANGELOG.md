@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.1.0](https://github.com/vexxhost/ansible-collection-ceph/compare/v4.0.0...v4.1.0) (2026-07-09)
+
+
+### Features
+
+* deploy ceph exporter ([#111](https://github.com/vexxhost/ansible-collection-ceph/issues/111)) ([6f7c515](https://github.com/vexxhost/ansible-collection-ceph/commit/6f7c5152a837f976830c787778be81bc01533781))
+
+
+### Bug Fixes
+
+* **playbooks:** avoid lvg invocation metadata ([#113](https://github.com/vexxhost/ansible-collection-ceph/issues/113)) ([2662371](https://github.com/vexxhost/ansible-collection-ceph/commit/26623717fa4acee1ace2beabc1209c5523e012bd))
+
 ## [4.0.0](https://github.com/vexxhost/ansible-collection-ceph/compare/v3.2.0...v4.0.0) (2026-05-19)
 
 
