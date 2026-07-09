@@ -95,10 +95,10 @@
 
     - name: Create a logical volume for each loop device
       community.general.lvol:
-        vg: "{{ item.invocation.module_args.vg }}"
+        vg: ceph-{{ inventory_hostname_short }}-{{ item }}
         lv: data
         size: 100%FREE
         shrink: false
-      loop: "{{ _lvg.results }}"
+      loop: "{{ ceph_osds }}"
       loop_control:
-        label: "{{ item.invocation.module_args.vg }}"
+        label: ceph-{{ inventory_hostname_short }}-{{ item }}
