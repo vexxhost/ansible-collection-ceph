@@ -24,7 +24,7 @@
       register: ceph_mon_conf_tempfile
 
     - name: Include extra configuration values
-      ansible.builtin.ini_file:
+      community.general.ini_file:
         path: "{{ ceph_mon_conf_tempfile.path }}"
         section: "{{ item.section }}"
         option: "{{ item.option }}"

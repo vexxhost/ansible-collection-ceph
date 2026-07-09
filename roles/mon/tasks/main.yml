@@ -14,7 +14,7 @@
 
 - name: Set Ceph Monitor IP address
   ansible.builtin.set_fact:
-    ceph_mon_ip_address: "{{ [ ansible_all_ipv4_addresses, ansible_all_ipv6_addresses ] | flatten | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
+    ceph_mon_ip_address: "{{ [ansible_all_ipv4_addresses, ansible_all_ipv6_addresses] | flatten | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
 
 - name: Check if any node is bootstrapped
   run_once: true
