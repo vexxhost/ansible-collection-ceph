@@ -23,6 +23,7 @@ galaxy_info:
       versions:
         - focal
         - jammy
+        - resolute
 
 dependencies:
   - role: cephadm
