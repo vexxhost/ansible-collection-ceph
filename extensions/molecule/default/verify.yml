@@ -5,67 +5,93 @@
   hosts: controllers
   become: true
   tasks:
-    - name: Get cluster health status
-      ansible.builtin.command: cephadm shell -- ceph health
-      register: _ceph_health
+    - name: List locally deployed Ceph daemons
+      ansible.builtin.command: cephadm ls
+      register: _cephadm_daemons
       changed_when: false
 
-    - name: Print cluster health status
-      ansible.builtin.debug:
-        var: _ceph_health
+    - name: Collect deployed Ceph container images
+      ansible.builtin.set_fact:
+        _ceph_container_images: >-
+          {{
+            _cephadm_daemons.stdout
+            | from_json
+            | selectattr('name', 'match', '^mon[.]')
+            | selectattr('container_image_name', 'defined')
+            | map(attribute='container_image_name')
+            | unique
+            | list
+          }}
 
-    - name: Assert that the cluster status is healthy
+    - name: Assert that a deployed Ceph container image was found
       ansible.builtin.assert:
         that:
-          - _ceph_health.stdout == 'HEALTH_OK'
+          - _ceph_container_images | length > 0
+        fail_msg: No deployed monitor container image was found in cephadm metadata
 
-    - name: Create a test Ceph pool
-      vexxhost.ceph.pool:
-        name: test-pool
-        state: present
-        size: "1"
-        min_size: "1"
-        application: rbd
-        pg_autoscale_mode: "on"
+    - name: Verify using the deployed Ceph container image
+      environment:
+        CEPHADM_IMAGE: "{{ _ceph_container_images | first }}"
+        CEPH_CONTAINER_IMAGE: "{{ _ceph_container_images | first }}"
+        CEPH_CONTAINER_BINARY: docker
+      block:
+        - name: Get cluster health status
+          ansible.builtin.command: cephadm shell -- ceph health
+          register: _ceph_health
+          changed_when: false
 
-    - name: Create a test Ceph key
-      vexxhost.ceph.key:
-        name: client.test
-        state: present
-        caps:
-          mon: "allow r"
-          osd: "allow rwx pool=test-pool"
+        - name: Print cluster health status
+          ansible.builtin.debug:
+            var: _ceph_health
 
-    - name: Retrieve info for the test Ceph key
-      vexxhost.ceph.key_info:
-        name: client.test
-        state: info
-      register: _key_info
+        - name: Assert that the cluster status is healthy
+          ansible.builtin.assert:
+            that:
+              - _ceph_health.stdout == 'HEALTH_OK'
 
-    - name: Assert that key_info returns the correct key
-      ansible.builtin.assert:
-        that:
-          - _key_info.rc == 0
-          - (_key_info.stdout | from_json)[0].entity == 'client.test'
-          - (_key_info.stdout | from_json)[0].key is defined
-          - (_key_info.stdout | from_json)[0].caps.mon == 'allow r'
-          - (_key_info.stdout | from_json)[0].caps.osd == 'allow rwx pool=test-pool'
+        - name: Create a test Ceph pool
+          vexxhost.ceph.pool:
+            name: test-pool
+            state: present
+            size: "1"
+            min_size: "1"
+            application: rbd
+            pg_autoscale_mode: "on"
 
-    - name: Retrieve info for the test Ceph key using the legacy key module
-      vexxhost.ceph.key:
-        name: client.test
-        state: info
-      register: _legacy_key_info
+        - name: Create a test Ceph key
+          vexxhost.ceph.key:
+            name: client.test
+            state: present
+            caps:
+              mon: "allow r"
+              osd: "allow rwx pool=test-pool"
 
-    - name: Assert that the legacy key module info state returns the correct key
-      ansible.builtin.assert:
-        that:
-          - _legacy_key_info.rc == 0
-          - (_legacy_key_info.stdout | from_json)[0].entity == 'client.test'
-          - (_legacy_key_info.stdout | from_json)[0].key is defined
-          - (_legacy_key_info.stdout | from_json)[0].caps.mon == 'allow r'
-          - (_legacy_key_info.stdout | from_json)[0].caps.osd == 'allow rwx pool=test-pool'
-  environment:
-    CEPHADM_IMAGE: "quay.io/ceph/ceph:v{{ ceph_version }}"
-    CEPH_CONTAINER_IMAGE: "quay.io/ceph/ceph:v{{ ceph_version }}"
-    CEPH_CONTAINER_BINARY: docker
+        - name: Retrieve info for the test Ceph key
+          vexxhost.ceph.key_info:
+            name: client.test
+            state: info
+          register: _key_info
+
+        - name: Assert that key_info returns the correct key
+          ansible.builtin.assert:
+            that:
+              - _key_info.rc == 0
+              - (_key_info.stdout | from_json)[0].entity == 'client.test'
+              - (_key_info.stdout | from_json)[0].key is defined
+              - (_key_info.stdout | from_json)[0].caps.mon == 'allow r'
+              - (_key_info.stdout | from_json)[0].caps.osd == 'allow rwx pool=test-pool'
+
+        - name: Retrieve info for the test Ceph key using the legacy key module
+          vexxhost.ceph.key:
+            name: client.test
+            state: info
+          register: _legacy_key_info
+
+        - name: Assert that the legacy key module info state returns the correct key
+          ansible.builtin.assert:
+            that:
+              - _legacy_key_info.rc == 0
+              - (_legacy_key_info.stdout | from_json)[0].entity == 'client.test'
+              - (_legacy_key_info.stdout | from_json)[0].key is defined
+              - (_legacy_key_info.stdout | from_json)[0].caps.mon == 'allow r'
+              - (_legacy_key_info.stdout | from_json)[0].caps.osd == 'allow rwx pool=test-pool'

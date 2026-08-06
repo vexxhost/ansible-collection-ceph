@@ -17,6 +17,6 @@
   run_once: true
   vexxhost.ceph.orch_apply:
     fsid: "{{ ceph_exporter_fsid }}"
-    image: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('18.2.1'))) }}"
+    image: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.3'))) }}"
     docker: true
     spec: "{{ ceph_exporter_service_spec | to_nice_yaml }}"
