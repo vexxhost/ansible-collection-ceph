@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.2.0](https://github.com/vexxhost/ansible-collection-ceph/compare/v4.1.0...v4.2.0) (2026-08-06)
+
+
+### Features
+
+* use Ceph 20.2.3 and support Ubuntu Noble ([#119](https://github.com/vexxhost/ansible-collection-ceph/issues/119)) ([92af8ef](https://github.com/vexxhost/ansible-collection-ceph/commit/92af8ef648cd504065730ca9da172f6aafbc125a))
+
 ## [4.1.0](https://github.com/vexxhost/ansible-collection-ceph/compare/v4.0.0...v4.1.0) (2026-07-09)
 
 
