@@ -12,16 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# ---------------------------------------------------------------------------
+# Vendored from:
+#   https://github.com/ceph/ceph-ansible/blob/8599b192d33e1c55104c1c2fd1abfa8431c64664/library/ceph_mgr_module.py
+# Changes from upstream:
+#   - module_utils import rewritten to this collection's ca_common-compatible
+#     helper (ansible_collections.vexxhost.ceph.plugins.module_utils.common),
+#     which runs the same commands through `cephadm shell`.
+#   - reformatted invalid DOCUMENTATION YAML so it parses (upstream had a
+#     description continuation at list-item indent). Documentation only; no
+#     behavior change.
+# The upstream copyright/license header above is retained unmodified.
+# ---------------------------------------------------------------------------
+
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.vexxhost.ceph.plugins.module_utils.ca_common import (
-    exit_module,
-    generate_ceph_cmd,
-    is_containerized,
-)
-
+from ansible_collections.vexxhost.ceph.plugins.module_utils.common import exit_module, generate_cmd, is_containerized
 import datetime
 
 
@@ -50,8 +58,7 @@ options:
         default: ceph
     state:
         description:
-            - If 'enable' is used, the module enables the MGR module.
-            If 'absent' is used, the module disables the MGR module.
+            - If 'enable' is used, the module enables the MGR module. If 'absent' is used, the module disables the MGR module.
         required: false
         choices: ['enable', 'disable']
         default: enable
@@ -95,7 +102,7 @@ def main():
 
     container_image = is_containerized()
 
-    cmd = generate_ceph_cmd(sub_cmd=['mgr', 'module'],
+    cmd = generate_cmd(sub_cmd=['mgr', 'module'],
                        args=[state, name],
                        cluster=cluster,
                        container_image=container_image)

@@ -12,16 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# ---------------------------------------------------------------------------
+# Vendored from:
+#   https://github.com/ceph/ceph-ansible/blob/8599b192d33e1c55104c1c2fd1abfa8431c64664/library/ceph_key_info.py
+# Changes from upstream:
+#   - module_utils import rewritten to this collection's ca_common-compatible
+#     helper (ansible_collections.vexxhost.ceph.plugins.module_utils.common),
+#     which runs the same commands through `cephadm shell`.
+#   - reformatted invalid embedded YAML (DOCUMENTATION / EXAMPLES) so it parses:
+#     upstream had description continuations at list-item indent and a stray quote
+#     in an example. Documentation only; no behavior change.
+# The upstream copyright/license header above is retained unmodified.
+# ---------------------------------------------------------------------------
+
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-from ansible.module_utils.basic import AnsibleModule  # type: ignore
-from ansible_collections.vexxhost.ceph.plugins.module_utils.ca_common import (
-    generate_ceph_cmd,
-    is_containerized,
-    fatal
-)
-
+from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.vexxhost.ceph.plugins.module_utils.common import generate_cmd, is_containerized, fatal
 import datetime
 import os
 
@@ -34,7 +42,7 @@ ANSIBLE_METADATA = {
 
 DOCUMENTATION = '''
 ---
-module: ceph_key_info
+module: key_info
 
 author: Teoman ONAY <@asM0deuz>
 
@@ -43,8 +51,7 @@ short_description: Retrieve information about Cephx key(s)
 version_added: "2.6"
 
 description:
-    - Retrieve information about CephX keys.
-    It can list all keys or get information about a specific keyring.
+    - Retrieve information about CephX keys. It can list all keys or get information about a specific keyring.
 options:
     cluster:
         description:
@@ -54,53 +61,54 @@ options:
     name:
         description:
             - name of the CephX key
-        required: false
+        required: true
     user:
         description:
-            - entity used to perform operation.
-            It corresponds to the -n option (--name)
+            - entity used to perform operation. It corresponds to the -n option (--name)
         required: false
     user_key:
         description:
-            - the path to the keyring corresponding to the
-            user being used.
-            It corresponds to the -k option (--keyring)
+            - the path to the keyring corresponding to the user being used. It corresponds to the -k option (--keyring)
     state:
         description:
-            - If 'list' is used, the module will list all the keys and will
+            If 'list' is used, the module will list all the keys and will
             return a json output.
             If 'info' is used, the module will return in a json format the
             description of a given keyring.
         required: false
         choices: ['list', 'info']
-        default: info
+        default: list
     output_format:
         description:
-            - The key output format when retrieving the information of an
-            entity.
+            - The key output format when retrieving the information of an entity.
         required: false
         default: json
 '''
 
 EXAMPLES = '''
+
 - name: info cephx key
-  ceph_key_info:
+  key_info:
     name: "my_key"
     state: info
 
 - name: info cephx admin key (plain)
-  ceph_key_info:
+  key_info:
     name: client.admin
     output_format: plain
     state: info
   register: client_admin_key
 
 - name: list cephx keys
-  ceph_key_info:
+  key_info:
     state: list
 '''
 
 RETURN = '''#  '''
+
+
+CEPH_INITIAL_KEYS = ['client.admin', 'client.bootstrap-mds', 'client.bootstrap-mgr',  # noqa: E501
+                     'client.bootstrap-osd', 'client.bootstrap-rbd', 'client.bootstrap-rbd-mirror', 'client.bootstrap-rgw']  # noqa: E501
 
 
 def info_key(cluster, name, user, user_key, output_format, container_image=None):  # noqa: E501
@@ -117,12 +125,12 @@ def info_key(cluster, name, user, user_key, output_format, container_image=None)
         output_format,
     ]
 
-    cmd_list.append(generate_ceph_cmd(sub_cmd=['auth'],
-                                      args=args,
-                                      cluster=cluster,
-                                      user=user,
-                                      user_key=user_key,
-                                      container_image=container_image))
+    cmd_list.append(generate_cmd(sub_cmd=['auth'],
+                                 args=args,
+                                 cluster=cluster,
+                                 user=user,
+                                 user_key=user_key,
+                                 container_image=container_image))
 
     return cmd_list
 
@@ -140,12 +148,12 @@ def list_keys(cluster, user, user_key, container_image=None):
         'json',
     ]
 
-    cmd_list.append(generate_ceph_cmd(sub_cmd=['auth'],
-                                      args=args,
-                                      cluster=cluster,
-                                      user=user,
-                                      user_key=user_key,
-                                      container_image=container_image))
+    cmd_list.append(generate_cmd(sub_cmd=['auth'],
+                                 args=args,
+                                 cluster=cluster,
+                                 user=user,
+                                 user_key=user_key,
+                                 container_image=container_image))
 
     return cmd_list
 
