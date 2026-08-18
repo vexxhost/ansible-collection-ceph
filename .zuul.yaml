@@ -27,50 +27,44 @@
 - nodeset:
     name: ansible-collection-ceph-ha-ubuntu-jammy
     nodes:
-      - name: mon1
+      - name: node1
         label: ubuntu-jammy
-      - name: mon2
+      - name: node2
         label: ubuntu-jammy
-      - name: mon3
-        label: ubuntu-jammy
-      - name: osd1
+      - name: node3
         label: ubuntu-jammy
     groups:
       - name: controllers
         nodes:
-          - mon1
-          - mon2
-          - mon3
+          - node1
+          - node2
+          - node3
       - name: cephs
         nodes:
-          - mon1
-          - mon2
-          - mon3
-          - osd1
+          - node1
+          - node2
+          - node3
 
 - nodeset:
     name: ansible-collection-ceph-ha-ubuntu-noble
     nodes:
-      - name: mon1
+      - name: node1
         label: ubuntu-noble
-      - name: mon2
+      - name: node2
         label: ubuntu-noble
-      - name: mon3
-        label: ubuntu-noble
-      - name: osd1
+      - name: node3
         label: ubuntu-noble
     groups:
       - name: controllers
         nodes:
-          - mon1
-          - mon2
-          - mon3
+          - node1
+          - node2
+          - node3
       - name: cephs
         nodes:
-          - mon1
-          - mon2
-          - mon3
-          - osd1
+          - node1
+          - node2
+          - node3
 
 - job:
     name: ansible-collection-ceph-molecule
@@ -82,6 +76,134 @@
         - /dev/ceph-{{ inventory_hostname_short }}-osd0/data
         - /dev/ceph-{{ inventory_hostname_short }}-osd1/data
         - /dev/ceph-{{ inventory_hostname_short }}-osd2/data
+      ceph_rgw_enabled: true
+      ceph_rgw_remove_default_resources: true
+      ceph_mgr_modules:
+        - name: diskprediction_local
+        - name: dashboard
+        - name: iostat
+        - name: prometheus
+        - name: rgw
+      ceph_dashboard_users:
+        - name: admin
+          password: "ChangeMe123!"
+          roles:
+            - administrator
+        - name: viewer
+          password: "ReadOnly123!"
+          roles:
+            - read-only
+      ceph_config:
+        mgr:
+          settings:
+            - name: mgr/dashboard/standby_behaviour
+              value: redirect
+            - name: mgr/dashboard/RGW_API_SSL_VERIFY
+              value: false
+            - name: mgr/dashboard/FEATURE_TOGGLE_CEPHFS
+              value: false
+            - name: mgr/dashboard/FEATURE_TOGGLE_ISCSI
+              value: false
+            - name: mgr/dashboard/FEATURE_TOGGLE_MIRRORING
+              value: false
+            - name: mgr/dashboard/FEATURE_TOGGLE_NFS
+              value: false
+      ceph_ec_profiles:
+        - name: ec_hdd_s3
+          k: 2
+          m: 2
+          w: 8
+          crush_device_class: hdd
+          crush_root: default
+          crush_failure_domain: host
+          plugin: jerasure
+          jerasure_per_chunk_alignment: false
+          technique: reed_sol_van
+      ceph_crush_rules:
+        - name: rep_hdd
+          rule_type: replicated
+          device_class: hdd
+          bucket_root: default
+          bucket_type: host
+        - name: rep_lab
+          rule_type: replicated
+          bucket_root: default
+          bucket_type: osd
+        - name: ec_hdd_s3
+          rule_type: erasure
+          bucket_type: host
+          profile: ec_hdd_s3
+      ceph_pools:
+        - name: molecule-1.rgw.buckets.data
+          application: rgw
+          rule_name: replicated_rule
+          type: replicated
+          pg_autoscale_mode: true
+        - name: molecule-1.rgw.buckets.index
+          application: rgw
+          rule_name: replicated_rule
+          type: replicated
+          pg_num: 8
+          pgp_num: 8
+          pg_autoscale_mode: "off"
+        - name: molecule-1.rgw.buckets.non-ec
+          application: rgw
+          rule_name: replicated_rule
+          type: replicated
+          pg_num: 8
+          pgp_num: 8
+          pg_autoscale_mode: "off"
+        - name: molecule-1.rgw.control
+          application: rgw
+          rule_name: replicated_rule
+          type: replicated
+          pg_num: 8
+          pgp_num: 8
+          pg_autoscale_mode: "off"
+        - name: molecule-1.rgw.log
+          application: rgw
+          rule_name: replicated_rule
+          type: replicated
+          pg_num: 8
+          pgp_num: 8
+          pg_autoscale_mode: "off"
+        - name: molecule-1.rgw.meta
+          application: rgw
+          rule_name: replicated_rule
+          type: replicated
+          pg_num: 8
+          pgp_num: 8
+          pg_autoscale_mode: "off"
+      ceph_rgw_realms:
+        - name: molecule
+          default: true
+      ceph_rgw_zonegroups:
+        - name: molecule
+          realm: molecule
+          master: true
+          default: true
+          endpoints:
+            - "https://{{ hostvars[groups['controllers'][0]].ansible_default_ipv4.address | default(groups['controllers'][0]) }}:8080"
+      ceph_rgw_zones:
+        - name: molecule-1
+          realm: molecule
+          zonegroup: molecule
+          master: true
+          default: true
+          endpoints:
+            - "https://{{ hostvars[groups['controllers'][0]].ansible_default_ipv4.address | default(groups['controllers'][0]) }}:8080"
+      ceph_rgw_services:
+        - id: molecule
+          count_per_host: 1
+          networks:
+            - "{{ ceph_public_network }}"
+          spec:
+            rgw_realm: molecule
+            rgw_zonegroup: molecule
+            rgw_zone: molecule-1
+            rgw_frontend_port: 8080
+            ssl: true
+            generate_cert: true
 
 - job:
     name: ansible-collection-ceph-molecule-aio

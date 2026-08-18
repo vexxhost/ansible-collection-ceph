@@ -109,8 +109,8 @@ ceph_mgr_check_retry: 120
 ceph_mgr_modules:
   - name: diskprediction_local
   - name: dashboard
-  - name: prometheus
   - name: iostat
+  - name: prometheus
 
 # ===========================================================================
 # OSDs (osd role) — use ceph_osd_spec (drive groups, recommended) and/or
@@ -198,7 +198,8 @@ ceph_rgw_redeploy_spec_keys:
   # frontend listener
   - rgw_frontend_type
 # Remove the default zone/zonegroup and default.rgw.* pools created by a stock
-# RGW (destructive — toggles mon_allow_pool_delete). Opt-in.
+# RGW. Intended only for fresh installations during RGW bootstrap, before any
+# user data exists. Destructive — temporarily enables mon_allow_pool_delete.
 ceph_rgw_remove_default_resources: false
 
 # ===========================================================================

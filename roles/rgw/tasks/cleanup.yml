@@ -13,7 +13,9 @@
 # under the License.
 
 # Remove the stock default zone/zonegroup and default.rgw.* pools that a plain
-# RGW leaves behind. Destructive — only runs when ceph_rgw_remove_default_resources is set.
+# RGW leaves behind. This is intended only for a fresh installation during RGW
+# bootstrap, before any user data exists. Destructive — only runs when
+# ceph_rgw_remove_default_resources is set.
 - name: List RGW zones
   ansible.builtin.command: >-
     cephadm shell --fsid {{ ceph_fsid }} --config {{ _ceph_admin_config }}
@@ -39,25 +41,52 @@
         zonegroup: ""
         state: absent
 
-    - name: Allow pool deletion
+    - name: Get the current pool deletion setting
       vexxhost.ceph.config:
+        action: get
         who: mon
         option: mon_allow_pool_delete
-        value: "true"
+      register: _rgw_pool_delete_setting
+      changed_when: false
 
-    - name: Remove the default RGW pools
-      vexxhost.ceph.pool:
-        name: "{{ item }}"
-        state: absent
-      loop:
-        - default.rgw.control
-        - default.rgw.log
-        - default.rgw.meta
-      loop_control:
-        label: "{{ item }}"
+    - name: Remove the default RGW pools safely
+      block:
+        - name: Allow pool deletion
+          vexxhost.ceph.config:
+            who: mon
+            option: mon_allow_pool_delete
+            value: "true"
+          register: _rgw_pool_delete_enabled
 
-    - name: Disallow pool deletion again
-      vexxhost.ceph.config:
-        who: mon
-        option: mon_allow_pool_delete
-        value: "false"
+        - name: Remove the default RGW pools
+          vexxhost.ceph.pool:
+            name: "{{ item }}"
+            state: absent
+          loop:
+            - default.rgw.control
+            - default.rgw.log
+            - default.rgw.meta
+          loop_control:
+            label: "{{ item }}"
+
+      always:
+        - name: Restore the configured pool deletion setting
+          vexxhost.ceph.config:
+            who: mon
+            option: mon_allow_pool_delete
+            value: "{{ _rgw_pool_delete_setting.stdout }}"
+          when:
+            - _rgw_pool_delete_enabled is defined
+            - _rgw_pool_delete_enabled is changed
+            - _rgw_pool_delete_setting.stdout | length > 0
+
+        - name: Remove the temporary pool deletion setting
+          ansible.builtin.command: >-
+            cephadm shell --fsid {{ ceph_fsid }}
+            --config {{ _ceph_admin_config }}
+            -- ceph config rm mon mon_allow_pool_delete
+          changed_when: true
+          when:
+            - _rgw_pool_delete_enabled is defined
+            - _rgw_pool_delete_enabled is changed
+            - _rgw_pool_delete_setting.stdout | length == 0
