@@ -14,7 +14,7 @@
 
 galaxy_info:
   author: VEXXHOST, Inc.
-  description: Ansible role for Ceph manager
+  description: Day-2 Ceph configuration (config, pools, keys, crush, EC, dashboard)
   license: Apache-2.0
   min_ansible_version: 5.5.0
   standalone: false
@@ -27,4 +27,3 @@ galaxy_info:
 
 dependencies:
   - role: defaults
-  - role: cephadm

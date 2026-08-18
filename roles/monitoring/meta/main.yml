@@ -1,4 +1,4 @@
-# Copyright (c) 2023 VEXXHOST, Inc.
+# Copyright (c) 2026 VEXXHOST, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -12,9 +12,19 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# Inventory group for Ceph monitors
-ceph_osd_mons_group: "{{ ceph_control_plane_group | default('controllers') }}"
-ceph_osd_osds_group: "{{ ceph_osd_group | default('cephs') }}"
+galaxy_info:
+  author: VEXXHOST, Inc.
+  description: Deploy the cephadm monitoring components
+  license: Apache-2.0
+  min_ansible_version: 5.5.0
+  standalone: false
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+        - noble
 
-# Ceph FSID
-ceph_osd_fsid: "{{ ceph_fsid }}"
+dependencies:
+  - role: defaults
+  - role: cephadm

@@ -12,17 +12,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-galaxy_info:
-  author: VEXXHOST, Inc.
-  description: Ansible role for Ceph exporter
-  license: Apache-2.0
-  min_ansible_version: 5.5.0
-  standalone: false
-  platforms:
-    - name: Ubuntu
-      versions:
-        - focal
-        - jammy
-
-dependencies:
-  - role: cephadm
+# ceph_config is grouped by `who`, so the entity is named once and its options
+# live in a `settings:` list. Flatten to (who, setting) pairs to apply each.
+- name: Apply central Ceph configuration
+  vexxhost.ceph.config:
+    who: "{{ item.0.key }}"
+    option: "{{ item.1.name }}"
+    value: "{{ item.1.value }}"
+  loop: "{{ ceph_config | dict2items | subelements('value.settings', true) }}"
+  loop_control:
+    label: "{{ item.0.key }}/{{ item.1.name }}"
+  run_once: true
+  delegate_to: "{{ ceph_configure_admin_host }}"
+  no_log: "{{ item.1.sensitive | default(false) }}"

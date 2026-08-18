@@ -1,0 +1,51 @@
+# Copyright (c) 2026 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+- name: Configure erasure-code profiles
+  vexxhost.ceph.ec_profile:
+    name: "{{ item.name }}"
+    k: "{{ item.k }}"
+    m: "{{ item.m }}"
+    plugin: "{{ item.plugin | default(omit) }}"
+    technique: "{{ item.technique | default(omit) }}"
+    # clay / lrc / shec sizing
+    d: "{{ item.d | default(omit) }}"
+    l: "{{ item.l | default(omit) }}"
+    c: "{{ item.c | default(omit) }}"
+    scalar_mds: "{{ item.scalar_mds | default(omit) }}"
+    # jerasure tuning
+    w: "{{ item.w | default(omit) }}"
+    packetsize: "{{ item.packetsize | default(omit) }}"
+    jerasure_per_chunk_alignment: "{{ item.jerasure_per_chunk_alignment | default(omit) }}"
+    # lrc low-level form
+    crush_locality: "{{ item.crush_locality | default(omit) }}"
+    mapping: "{{ item.mapping | default(omit) }}"
+    layers: "{{ item.layers | default(omit) }}"
+    crush_steps: "{{ item.crush_steps | default(omit) }}"
+    # common CRUSH / loader / stripe
+    crush_root: "{{ item.crush_root | default(omit) }}"
+    crush_failure_domain: "{{ item.crush_failure_domain | default(omit) }}"
+    crush_device_class: "{{ item.crush_device_class | default(omit) }}"
+    crush_num_failure_domains: "{{ item.crush_num_failure_domains | default(omit) }}"
+    crush_osds_per_failure_domain: "{{ item.crush_osds_per_failure_domain | default(omit) }}"
+    directory: "{{ item.directory | default(omit) }}"
+    stripe_unit: "{{ item.stripe_unit | default(omit) }}"
+    force: "{{ item.force | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ ceph_ec_profiles }}"
+  loop_control:
+    loop_var: item
+    label: "{{ item.name }}"
+  run_once: true
+  delegate_to: "{{ ceph_configure_admin_host }}"

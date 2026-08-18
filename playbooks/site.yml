@@ -1,4 +1,4 @@
-# Copyright (c) 2023 VEXXHOST, Inc.
+# Copyright (c) 2026 VEXXHOST, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -13,7 +13,7 @@
 # under the License.
 
 - name: Deploy Ceph monitors & managers
-  hosts: "{{ ceph_control_plane_group | default('controllers') }}"
+  hosts: "{{ ceph_mon_group | default('controllers') }}"
   become: true
   roles:
     - role: mon
@@ -22,9 +22,6 @@
     - role: mgr
       tags:
         - ceph-mgr
-  environment:
-    CEPH_CONTAINER_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.3'))) }}"
-    CEPH_CONTAINER_BINARY: docker
 
 - name: Deploy Ceph OSDs
   hosts: "{{ ceph_osd_group | default('cephs') }}"
@@ -33,17 +30,27 @@
     - role: osd
       tags:
         - ceph-osd
-  environment:
-    CEPH_CONTAINER_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.3'))) }}"
-    CEPH_CONTAINER_BINARY: docker
 
-- name: Deploy Ceph exporters
-  hosts: "{{ ceph_control_plane_group | default('controllers') }}"
+- name: Apply Ceph configuration
+  hosts: "{{ ceph_mon_group | default('controllers') }}"
   become: true
   roles:
-    - role: ceph_exporter
+    - role: configure
       tags:
-        - ceph-exporter
-  environment:
-    CEPH_CONTAINER_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.3'))) }}"
-    CEPH_CONTAINER_BINARY: docker
+        - ceph-configure
+
+- name: Deploy Ceph RADOS Gateways
+  hosts: "{{ ceph_rgw_group | default('controllers') }}"
+  become: true
+  roles:
+    - role: rgw
+      tags:
+        - ceph-rgw
+
+- name: Deploy Ceph monitoring stack
+  hosts: "{{ ceph_mon_group | default('controllers') }}"
+  become: true
+  roles:
+    - role: monitoring
+      tags:
+        - ceph-monitoring

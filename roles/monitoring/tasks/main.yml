@@ -1,0 +1,60 @@
+# Copyright (c) 2026 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+- name: Deploy the Ceph monitoring stack
+  when: ceph_monitoring_enabled | bool
+  block:
+    - name: Locate the cluster admin host
+      ansible.builtin.stat:
+        path: "/var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[item]['inventory_hostname_short'] }}/store.db"
+      register: _mon_store_stat
+      loop: "{{ groups[ceph_mon_group] }}"
+      delegate_to: "{{ item }}"
+      run_once: true
+
+    - name: Select the admin host
+      ansible.builtin.set_fact:
+        ceph_monitoring_admin_host: >-
+          {{ _mon_store_stat.results | selectattr('stat.exists', 'equalto', true)
+             | map(attribute='item') | first | default(groups[ceph_mon_group][0]) }}
+
+    - name: Set the admin mon config path
+      ansible.builtin.set_fact:
+        _ceph_admin_config: >-
+          /var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[ceph_monitoring_admin_host]['inventory_hostname_short'] }}/config
+
+    - name: Deploy monitoring services
+      environment: "{{ ceph_environment | combine({'CEPHADM_CONFIG': _ceph_admin_config}) }}"
+      run_once: true
+      delegate_to: "{{ ceph_monitoring_admin_host }}"
+      block:
+        # Air-gap image pins (mgr/cephadm/container_image_<component>). The
+        # monitoring images are upstream (prometheus/grafana/etc.), not the ceph
+        # image; ceph-exporter uses the ceph image. Empty dict -> cephadm defaults.
+        - name: Pin monitoring container images
+          vexxhost.ceph.config:
+            who: mgr
+            option: "mgr/cephadm/container_image_{{ item.key }}"
+            value: "{{ item.value }}"
+          loop: "{{ ceph_monitoring_images | dict2items }}"
+          loop_control:
+            label: "{{ item.key }}"
+
+        - name: Apply the monitoring service specs
+          vexxhost.ceph.orch_apply:
+            spec: "{{ item | to_nice_yaml }}"
+          loop: "{{ ceph_monitoring_services }}"
+          loop_control:
+            loop_var: item
+            label: "{{ item.service_type }}"

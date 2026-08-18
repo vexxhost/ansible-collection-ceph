@@ -1,4 +1,4 @@
-# Copyright (c) 2023 VEXXHOST, Inc.
+# Copyright (c) 2026 VEXXHOST, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -26,4 +26,15 @@ galaxy_info:
         - noble
 
 dependencies:
+  - role: defaults
   - role: vexxhost.containers.docker
+  - role: vexxhost.containers.download_artifact
+    vars:
+      download_artifact_url: "{{ cephadm_download_url }}"
+      download_artifact_dest: "{{ cephadm_download_dest }}"
+      download_artifact_checksum: "sha256:{{ cephadm_binary_checksum }}"
+      download_artifact_owner: root
+      download_artifact_mode: "0o755"
+      download_artifact_http_proxy: "{{ cephadm_http_proxy }}"
+      download_artifact_https_proxy: "{{ cephadm_https_proxy }}"
+      download_artifact_no_proxy: "{{ cephadm_no_proxy }}"

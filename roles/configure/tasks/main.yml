@@ -1,0 +1,64 @@
+# Copyright (c) 2026 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+- name: Locate the cluster admin host
+  ansible.builtin.stat:
+    path: "/var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[item]['inventory_hostname_short'] }}/store.db"
+  register: _mon_store_stat
+  loop: "{{ groups[ceph_mon_group] }}"
+  delegate_to: "{{ item }}"
+  run_once: true
+
+- name: Select the admin host
+  ansible.builtin.set_fact:
+    ceph_configure_admin_host: >-
+      {{ _mon_store_stat.results | selectattr('stat.exists', 'equalto', true)
+         | map(attribute='item') | first | default(groups[ceph_mon_group][0]) }}
+
+- name: Set the admin mon config path
+  ansible.builtin.set_fact:
+    _ceph_admin_config: >-
+      /var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[ceph_configure_admin_host]['inventory_hostname_short'] }}/config
+
+# All day-2 resources run once, delegated to the admin host, over the fast
+# cephadm-shell env, in dependency order.
+- name: Apply day-2 configuration
+  environment: "{{ ceph_environment | combine({'CEPHADM_CONFIG': _ceph_admin_config}) }}"
+  block:
+    - name: Apply central Ceph configuration
+      ansible.builtin.include_tasks: config.yml
+      when: ceph_config | length > 0
+
+    - name: Configure erasure-code profiles
+      ansible.builtin.include_tasks: ec_profiles.yml
+      when: ceph_ec_profiles | length > 0
+
+    - name: Configure CRUSH rules
+      ansible.builtin.include_tasks: crush_rules.yml
+      when: ceph_crush_rules | length > 0
+
+    - name: Configure pools
+      ansible.builtin.include_tasks: pools.yml
+      when: ceph_pools | length > 0
+
+    - name: Configure CephX keys
+      ansible.builtin.include_tasks: keys.yml
+      when: ceph_keys | length > 0
+
+    - name: Enroll the dashboard TLS certificate
+      ansible.builtin.include_tasks: dashboard.yml
+
+    - name: Configure dashboard users
+      ansible.builtin.include_tasks: dashboard_users.yml
+      when: ceph_dashboard_users | length > 0

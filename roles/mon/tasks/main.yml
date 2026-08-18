@@ -1,4 +1,4 @@
-# Copyright (c) 2022 VEXXHOST, Inc.
+# Copyright (c) 2026 VEXXHOST, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -12,53 +12,87 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-- name: Set Ceph Monitor IP address
+---
+# Bootstrap-node selection first (no special environment needed), so the block
+# below can point CEPHADM_CONFIG at the chosen admin host.
+- name: Find this monitor's addresses on the public network
   ansible.builtin.set_fact:
-    ceph_mon_ip_address: "{{ [ansible_all_ipv4_addresses, ansible_all_ipv6_addresses] | flatten | ansible.utils.ipaddr(ceph_mon_public_network) | first }}"
+    _mon_ip_candidates: >-
+      {{ [ansible_facts.all_ipv4_addresses, ansible_facts.all_ipv6_addresses]
+         | flatten | ansible.utils.ipaddr(ceph_public_network) }}
 
-- name: Check if any node is bootstrapped
-  run_once: true
+- name: Assert exactly one address matches the public network
+  ansible.builtin.assert:
+    that: _mon_ip_candidates | length == 1
+    fail_msg: >-
+      Expected exactly one address in {{ ceph_public_network }} on {{ inventory_hostname }},
+      found {{ _mon_ip_candidates | length }}: {{ _mon_ip_candidates }}.
+
+- name: Set this monitor's Ceph public IP
+  ansible.builtin.set_fact:
+    ceph_mon_ip: "{{ _mon_ip_candidates | first }}"
+
+- name: Check whether any monitor is already bootstrapped
   ansible.builtin.stat:
-    path: "/var/lib/ceph/{{ ceph_mon_fsid }}/mon.{{ hostvars[item]['inventory_hostname_short'] }}/store.db"
-  register: _ceph_mon_stat
+    path: "/var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[item]['inventory_hostname_short'] }}/store.db"
+  register: _mon_store_stat
   loop: "{{ groups[ceph_mon_group] }}"
   delegate_to: "{{ item }}"
-
-- name: Select pre-existing bootstrap node if exists
-  ansible.builtin.set_fact:
-    _ceph_mon_bootstrap_node: "{{ _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first | default(groups[ceph_mon_group][0]) }}" # yamllint disable-line rule:line-length
-
-- name: Bootstrap cluster
-  ansible.builtin.include_tasks: bootstrap-ceph.yml
-  when:
-    - _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | length == 0
-
-- name: Install Ceph host
-  ansible.builtin.include_role:
-    name: vexxhost.ceph.cephadm_host
-  vars:
-    cephadm_host_admin_host: "{{ _ceph_mon_bootstrap_node }}"
-    cephadm_host_labels:
-      - _admin
-      - mon
-
-- name: Configure "mon" label for monitors
-  delegate_to: "{{ _ceph_mon_bootstrap_node }}"
   run_once: true
-  vexxhost.ceph.orch_apply:
-    fsid: "{{ ceph_mon_fsid }}"
-    image: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.3'))) }}"
-    docker: true
-    spec: |
-      service_type: mon
-      service_name: mon
-      placement:
-        label: mon
 
-- name: Validate monitor exist
-  ansible.builtin.command: cephadm shell -- ceph orch ps --daemon_type mon --hostname "{{ inventory_hostname_short }}"
-  register: ps_result
-  until: ps_result.stdout | length > 0
-  retries: "{{ ceph_mon_check_retry | default(120) }}"
-  delay: 3
-  changed_when: false
+- name: Select the bootstrap node (existing one, else the first monitor)
+  ansible.builtin.set_fact:
+    ceph_mon_bootstrap_node: >-
+      {{ _mon_store_stat.results | selectattr('stat.exists', 'equalto', true)
+         | map(attribute='item') | first | default(groups[ceph_mon_group][0]) }}
+
+# One block sets the cephadm-shell environment for the whole deploy: CEPHADM_IMAGE
+# (read by the cephadm binary), CEPHADM_FSID and the admin mon's CEPHADM_CONFIG
+# (read by the vendored modules' shell builders). This gives every module AND raw
+# command the fast `cephadm shell --fsid --config` path uniformly, and is inherited
+# by the included cephadm_host role.
+- name: Deploy Ceph monitors
+  environment: >-
+    {{ ceph_environment | combine({'CEPHADM_CONFIG':
+       '/var/lib/ceph/' ~ ceph_fsid ~ '/mon.'
+       ~ hostvars[ceph_mon_bootstrap_node].inventory_hostname_short ~ '/config'}) }}
+  block:
+    - name: Bootstrap the cluster
+      ansible.builtin.include_tasks: bootstrap.yml
+      when: _mon_store_stat.results | selectattr('stat.exists', 'equalto', true) | list | length == 0
+
+    - name: Register this monitor host
+      ansible.builtin.include_role:
+        name: vexxhost.ceph.cephadm_host
+      vars:
+        cephadm_host_admin_host: "{{ ceph_mon_bootstrap_node }}"
+        cephadm_host_public_key: "{{ ceph_ssh_public_key }}"
+        cephadm_host_location: "{{ ceph_host_location }}"
+
+    - name: Apply the monitor service spec
+      vexxhost.ceph.orch_apply:
+        spec: |
+          service_type: mon
+          service_name: mon
+          placement:
+            label: mon
+      run_once: true
+      delegate_to: "{{ ceph_mon_bootstrap_node }}"
+
+    - name: Wait for this monitor's daemon to be present
+      # No native module for "wait until a daemon is present". Query from the
+      # bootstrap/admin mon, which has a real config. Do NOT point
+      # `cephadm shell --config` at THIS host's mon config: on a not-yet-deployed
+      # mon that path is missing and the container bind-mount would CREATE it as a
+      # directory, corrupting the mon data dir (IsADirectoryError on deploy).
+      ansible.builtin.command: >-
+        cephadm shell
+        --fsid {{ ceph_fsid }}
+        --config /var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[ceph_mon_bootstrap_node].inventory_hostname_short }}/config
+        -- ceph orch ps --daemon_type mon --hostname {{ inventory_hostname_short }}
+      register: _mon_ps
+      until: _mon_ps.stdout | length > 0
+      retries: "{{ ceph_mon_check_retry }}"
+      delay: 3
+      changed_when: false
+      delegate_to: "{{ ceph_mon_bootstrap_node }}"

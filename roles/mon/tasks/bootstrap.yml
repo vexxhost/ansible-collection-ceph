@@ -1,0 +1,96 @@
+# Copyright (c) 2026 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+# Runs only on the selected bootstrap node. Inherits the CEPHADM_* environment
+# from the calling block in main.yml.
+- name: Bootstrap Ceph on the selected node
+  when: inventory_hostname == ceph_mon_bootstrap_node
+  block:
+    - name: Ensure /etc/ceph exists
+      ansible.builtin.file:
+        path: /etc/ceph
+        state: directory
+        mode: "0o755"
+
+    # SSH identity, unified: a caller-provided key is written to disk; otherwise
+    # a keypair is generated in place (idempotent). cephadm_bootstrap then points
+    # --ssh-public-key/--ssh-private-key at these files.
+    - name: Write the caller-provided SSH private key
+      ansible.builtin.copy:
+        content: "{{ ceph_ssh_private_key }}"
+        dest: "{{ ceph_mon_ssh_private_key_path }}"
+        mode: "0o600"
+      when: ceph_ssh_private_key | length > 0
+
+    - name: Write the caller-provided SSH public key
+      ansible.builtin.copy:
+        content: "{{ ceph_ssh_public_key }}"
+        dest: "{{ ceph_mon_ssh_public_key_path }}"
+        mode: "0o644"
+      when: ceph_ssh_public_key | length > 0
+
+    - name: Generate a cephadm SSH keypair when none was provided
+      community.crypto.openssh_keypair:
+        path: "{{ ceph_mon_ssh_private_key_path }}"
+        type: rsa
+        size: 4096
+        comment: "ceph-{{ ceph_fsid }}"
+      when: ceph_ssh_private_key | length == 0
+
+    - name: Create a temporary ceph.conf for bootstrap overrides
+      ansible.builtin.tempfile:
+        state: file
+        prefix: ceph_
+        suffix: .conf
+      register: _ceph_conf_tmp
+
+    - name: Populate bootstrap ceph.conf overrides
+      community.general.ini_file:
+        path: "{{ _ceph_conf_tmp.path }}"
+        section: "{{ item.section }}"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        mode: "0o640"
+      loop: "{{ ceph_mon_conf_overrides }}"
+
+    - name: Bootstrap the cluster
+      # cephadm_bootstrap builds `cephadm bootstrap` directly (not via the
+      # shell builders), so it does NOT pick up CEPHADM_FSID/CEPHADM_IMAGE from
+      # the env — fsid and image MUST be passed explicitly, or cephadm generates
+      # a random fsid.
+      vexxhost.ceph.bootstrap:
+        fsid: "{{ ceph_fsid }}"
+        image: "{{ ceph_image }}"
+        mon_ip: "{{ ceph_mon_ip }}"
+        cluster_network: "{{ ceph_cluster_network }}"
+        ssh_user: "{{ ceph_ssh_user }}"
+        ssh_public_key: "{{ ceph_mon_ssh_public_key_path }}"
+        ssh_private_key: "{{ ceph_mon_ssh_private_key_path }}"
+        config: "{{ _ceph_conf_tmp.path }}"
+        skip_pull: true
+        skip_monitoring_stack: true
+        skip_dashboard: "{{ not ceph_bootstrap_enable_dashboard | bool }}"
+        skip_firewalld: "{{ not ceph_bootstrap_enable_firewalld | bool }}"
+        allow_fqdn_hostname: "{{ ceph_bootstrap_allow_fqdn_hostname }}"
+        single_host_defaults: "{{ ceph_bootstrap_single_host_defaults }}"
+        registry_url: "{{ ceph_registry_url | default(omit, true) }}"
+        registry_username: "{{ ceph_registry_username | default(omit, true) }}"
+        registry_password: "{{ ceph_registry_password | default(omit, true) }}"
+
+  always:
+    - name: Remove the temporary ceph.conf
+      ansible.builtin.file:
+        path: "{{ _ceph_conf_tmp.path }}"
+        state: absent
+      when: _ceph_conf_tmp.path is defined

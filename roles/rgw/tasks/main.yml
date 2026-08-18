@@ -1,0 +1,66 @@
+# Copyright (c) 2026 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+# RGW management is opt-out via ceph_rgw_enabled. Set it false to have the
+# collection NOT touch RGW at all (e.g. an environment where RGW is fronted by
+# an external LB and/or will be managed by a separate cephadm+rook setup).
+- name: Manage RADOS Gateway
+  when: ceph_rgw_enabled | bool
+  block:
+    - name: Locate the cluster admin host
+      ansible.builtin.stat:
+        path: "/var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[item]['inventory_hostname_short'] }}/store.db"
+      register: _mon_store_stat
+      loop: "{{ groups[ceph_mon_group] }}"
+      delegate_to: "{{ item }}"
+      run_once: true
+
+    - name: Select the admin host
+      ansible.builtin.set_fact:
+        ceph_rgw_admin_host: >-
+          {{ _mon_store_stat.results | selectattr('stat.exists', 'equalto', true)
+             | map(attribute='item') | first | default(groups[ceph_mon_group][0]) }}
+
+    - name: Set the admin mon config path
+      ansible.builtin.set_fact:
+        _ceph_admin_config: >-
+          /var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[ceph_rgw_admin_host]['inventory_hostname_short'] }}/config
+
+    - name: Deploy and configure RADOS Gateway
+      environment: "{{ ceph_environment | combine({'CEPHADM_CONFIG': _ceph_admin_config}) }}"
+      block:
+        # Register the RGW host so cephadm can place rgw daemons on it. Idempotent
+        # / no-op when the host is already registered (e.g. co-located with a mon).
+        - name: Register this RGW host
+          ansible.builtin.include_role:
+            name: vexxhost.ceph.cephadm_host
+          vars:
+            cephadm_host_admin_host: "{{ ceph_rgw_admin_host }}"
+            cephadm_host_public_key: "{{ ceph_ssh_public_key }}"
+            cephadm_host_location: "{{ ceph_host_location }}"
+
+        # Cluster-wide RGW config: multisite -> services -> users.
+        - name: Configure RGW multisite (realm, zonegroup, zone)
+          ansible.builtin.include_tasks: multisite.yml
+          run_once: true
+
+        - name: Apply the RGW service specs
+          ansible.builtin.include_tasks: services.yml
+          run_once: true
+          when: ceph_rgw_services | length > 0
+
+        - name: Remove the default zone / zonegroup / pools
+          ansible.builtin.include_tasks: cleanup.yml
+          run_once: true
+          when: ceph_rgw_remove_default_resources | bool

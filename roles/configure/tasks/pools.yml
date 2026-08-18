@@ -1,0 +1,35 @@
+# Copyright (c) 2026 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+- name: Configure pools
+  vexxhost.ceph.pool:
+    name: "{{ item.name }}"
+    pool_type: "{{ item.type | default('replicated') }}"
+    pg_num: "{{ item.pg_num | default(omit, true) }}"
+    pgp_num: "{{ item.pgp_num | default(omit, true) }}"
+    size: "{{ item.size | default(omit, true) }}"
+    min_size: "{{ item.min_size | default(omit, true) }}"
+    pg_autoscale_mode: "{{ item.pg_autoscale_mode | default(omit, true) }}"
+    target_size_ratio: "{{ item.target_size_ratio | default(omit, true) }}"
+    rule_name: "{{ item.rule_name | default(omit, true) }}"
+    erasure_profile: "{{ item.erasure_profile | default(omit, true) }}"
+    application: "{{ item.application | default(omit, true) }}"
+    expected_num_objects: "{{ item.expected_num_objects | default(omit, true) }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ ceph_pools }}"
+  loop_control:
+    loop_var: item
+    label: "{{ item.name }}"
+  run_once: true
+  delegate_to: "{{ ceph_configure_admin_host }}"

@@ -8,6 +8,8 @@ description: Ansible collection for deploying Ceph clusters
 license:
   - GPL-3.0-or-later
 dependencies:
+  community.crypto: '>=2.2.3'
+  community.docker: '>=4.3.1'
   community.general: '>=4.5.0'
   ansible.utils: '>=6.0.0'
   vexxhost.containers: '>=1.1.1'

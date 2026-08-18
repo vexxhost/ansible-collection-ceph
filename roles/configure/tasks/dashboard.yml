@@ -1,0 +1,93 @@
+# Copyright (c) 2026 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+# Dashboard TLS enrollment + reload. Only acts when the dashboard mgr module is
+# enabled (the mgr role enables it via ceph_mgr_modules). Because bootstrap runs
+# with --skip-dashboard, no cert exists until we enroll one here — without it the
+# dashboard can't start its HTTPS listener and `ceph mgr services` stays empty.
+#
+# The cert lives in the config-key store (mgr/dashboard/crt|key) — that's what
+# `create-self-signed-cert` writes and what we read/compare here.
+- name: Check whether the dashboard mgr module is enabled
+  ansible.builtin.command: >-
+    cephadm shell --fsid {{ ceph_fsid }} --config {{ _ceph_admin_config }}
+    -- ceph mgr module ls --format json
+  register: _ceph_mgr_module_ls
+  changed_when: false
+  run_once: true
+  delegate_to: "{{ ceph_configure_admin_host }}"
+
+- name: Enroll the dashboard certificate
+  when: "'dashboard' in (_ceph_mgr_module_ls.stdout | from_json).enabled_modules"
+  run_once: true
+  delegate_to: "{{ ceph_configure_admin_host }}"
+  block:
+    - name: Get the current dashboard certificate
+      ansible.builtin.command: >-
+        cephadm shell --fsid {{ ceph_fsid }} --config {{ _ceph_admin_config }}
+        -- ceph config-key get mgr/dashboard/crt
+      register: _dashboard_crt
+      changed_when: false
+      failed_when: false      # non-zero simply means no cert is set yet
+
+    - name: Install the provided dashboard certificate
+      when:
+        - ceph_dashboard_cert | length > 0
+        - ceph_dashboard_key | length > 0
+        - (_dashboard_crt.stdout | trim) != (ceph_dashboard_cert | trim)
+      block:
+        - name: Set the dashboard certificate
+          ansible.builtin.command:
+            cmd: >-
+              cephadm shell --fsid {{ ceph_fsid }} --config {{ _ceph_admin_config }}
+              -- ceph config-key set mgr/dashboard/crt -i -
+            stdin: "{{ ceph_dashboard_cert }}"
+          changed_when: true
+
+        - name: Set the dashboard certificate key
+          ansible.builtin.command:
+            cmd: >-
+              cephadm shell --fsid {{ ceph_fsid }} --config {{ _ceph_admin_config }}
+              -- ceph config-key set mgr/dashboard/key -i -
+            stdin: "{{ ceph_dashboard_key }}"
+          changed_when: true
+          no_log: true
+
+        - name: Flag the dashboard for reload
+          ansible.builtin.set_fact:
+            _ceph_dashboard_reload: true
+
+    - name: Generate a self-signed dashboard certificate
+      when:
+        - not (ceph_dashboard_cert | length > 0 and ceph_dashboard_key | length > 0)
+        - _dashboard_crt.rc != 0 or (_dashboard_crt.stdout | trim | length == 0)
+      block:
+        - name: Create a self-signed certificate
+          ansible.builtin.command: >-
+            cephadm shell --fsid {{ ceph_fsid }} --config {{ _ceph_admin_config }}
+            -- ceph dashboard create-self-signed-cert
+          changed_when: true
+
+        - name: Flag the dashboard for reload
+          ansible.builtin.set_fact:
+            _ceph_dashboard_reload: true
+
+    - name: Reload the dashboard so it picks up the certificate
+      when: _ceph_dashboard_reload | default(false) | bool
+      ansible.builtin.command: "cephadm shell --fsid {{ ceph_fsid }} --config {{ _ceph_admin_config }} -- {{ item }}"
+      changed_when: true
+      loop:
+        - ceph mgr module disable dashboard
+        - ceph mgr module enable dashboard
+        - ceph orch reconfig mgr

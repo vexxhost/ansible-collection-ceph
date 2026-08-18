@@ -1,4 +1,4 @@
-# Copyright (c) 2023 VEXXHOST, Inc.
+# Copyright (c) 2026 VEXXHOST, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -12,42 +12,94 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-- name: Get public SSH key and store fact if not set
-  when:
-    - cephadm_host_public_key is not defined
-  block:
-    - name: Get public SSH key for "cephadm" user
-      run_once: true
-      changed_when: false
-      delegate_to: "{{ cephadm_host_admin_host }}"
-      ansible.builtin.command: |
-        cephadm shell
-          --fsid "{{ cephadm_host_fsid }}"
-          --config "/var/lib/ceph/{{ cephadm_host_fsid }}/mon.{{ hostvars[cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
-          -- ceph cephadm get-pub-key
-      register: cephadm_host_public_key_command
+# Included from a component role (mon/mgr/osd) whose block sets `environment`
+# (CEPHADM_IMAGE/FSID/CONFIG); the tasks here inherit it for fast cephadm shell.
 
-    - name: Set fact with public SSH key for "cephadm" user
-      run_once: true
-      delegate_to: "{{ item }}"
-      ansible.builtin.set_fact:
-        cephadm_host_public_key: "{{ cephadm_host_public_key_command.stdout }}"
-      loop: "{{ play_hosts }}"
+- name: Get the cephadm public key
+  # No native module exists for `ceph cephadm get-pub-key`. Raw command: the
+  # cephadm binary ignores our CEPHADM_FSID/CEPHADM_CONFIG env, so pass
+  # --fsid/--config explicitly for speed (image comes from the CEPHADM_IMAGE
+  # env). Runs once on the admin host; run_once makes the registered result
+  # available to EVERY host in the play (no fact-publishing dance needed).
+  ansible.builtin.command: >-
+    cephadm shell
+    --fsid {{ ceph_fsid }}
+    --config /var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[cephadm_host_admin_host].inventory_hostname_short }}/config
+    -- ceph cephadm get-pub-key
+  changed_when: false
+  run_once: true
+  delegate_to: "{{ cephadm_host_admin_host }}"
+  register: _cephadm_get_pub_key
+  when: cephadm_host_public_key | length == 0
 
-- name: Set authorized key for "cephadm"
+- name: Resolve the cluster SSH public key to authorise
+  # Prefer a caller-provided key; otherwise the one fetched above (available on
+  # every host because the fetch is run_once).
+  ansible.builtin.set_fact:
+    _cephadm_host_pubkey: >-
+      {{ cephadm_host_public_key if (cephadm_host_public_key | length > 0)
+         else (_cephadm_get_pub_key.stdout | default('')) }}
+
+- name: Assert a cluster SSH key was resolved
+  ansible.builtin.assert:
+    that: _cephadm_host_pubkey | length > 0
+    fail_msg: >-
+      No cluster SSH public key resolved for {{ inventory_hostname }} — cannot
+      authorise cephadm access (host would fail to join). Check
+      `ceph cephadm get-pub-key` on {{ cephadm_host_admin_host }}.
+
+- name: Authorise the cluster SSH key for the cephadm user
   ansible.posix.authorized_key:
     user: "{{ cephadm_host_user }}"
+    key: "{{ _cephadm_host_pubkey }}"
     state: present
-    key: "{{ cephadm_host_public_key }}"
 
-- name: Add new host to Ceph
-  changed_when: false
+- name: Derive this host's cephadm labels from inventory membership
+  # The FULL set is computed here (not per-calling-role) so mon/mgr/osd runs
+  # against the same host all pass the same desired labels. ceph_orch_host
+  # diffs labels declaratively (adds missing AND removes extras); passing the
+  # complete set every time is what keeps it idempotent for co-located daemons.
+  ansible.builtin.set_fact:
+    _cephadm_host_labels: >-
+      {{ (
+           (['mon', '_admin'] if inventory_hostname in groups.get(ceph_mon_group, []) else [])
+         + (['mgr', '_admin'] if inventory_hostname in groups.get(ceph_mgr_group, []) else [])
+         + (['osd'] if inventory_hostname in groups.get(ceph_osd_group, []) else [])
+         + (['rgw'] if inventory_hostname in groups.get(ceph_rgw_group, []) else [])
+         + cephadm_host_extra_labels
+         ) | unique }}
+
+- name: Find this host's addresses on the public network
+  ansible.builtin.set_fact:
+    _cephadm_host_addrs: >-
+      {{ [ansible_facts.all_ipv4_addresses, ansible_facts.all_ipv6_addresses]
+         | flatten | ansible.utils.ipaddr(cephadm_host_public_network) }}
+
+- name: Assert exactly one address matches the public network
+  ansible.builtin.assert:
+    that: _cephadm_host_addrs | length == 1
+    fail_msg: >-
+      Expected exactly one address in {{ cephadm_host_public_network }} on
+      {{ inventory_hostname }}, found {{ _cephadm_host_addrs | length }}: {{ _cephadm_host_addrs }}.
+
+- name: Register the host (labels)
+  vexxhost.ceph.orch_host:
+    name: "{{ inventory_hostname_short }}"
+    address: "{{ _cephadm_host_addrs | first }}"
+    labels: "{{ _cephadm_host_labels }}"
   delegate_to: "{{ cephadm_host_admin_host }}"
-  ansible.builtin.command: |
-    cephadm shell
-      --fsid "{{ cephadm_host_fsid }}"
-      --config "/var/lib/ceph/{{ cephadm_host_fsid }}/mon.{{ hostvars[cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
-      -- ceph orch host add
-      {{ inventory_hostname_short }}
-      {{ [ansible_all_ipv4_addresses, ansible_all_ipv6_addresses] | flatten | ansible.utils.ipaddr(ceph_mon_public_network) | first }}
-      {% if cephadm_host_labels | length > 0 %}--labels={{ cephadm_host_labels | join(',') }}{% endif %}
+  when: cephadm_host_location | length == 0
+
+- name: Register the host with a CRUSH location
+  # ceph_orch_host has no location field, so apply a full host spec instead.
+  vexxhost.ceph.orch_apply:
+    spec: "{{ _cephadm_host_spec | to_nice_yaml }}"
+  vars:
+    _cephadm_host_spec:
+      service_type: host
+      hostname: "{{ inventory_hostname_short }}"
+      addr: "{{ _cephadm_host_addrs | first }}"
+      labels: "{{ _cephadm_host_labels }}"
+      location: "{{ cephadm_host_location }}"
+  delegate_to: "{{ cephadm_host_admin_host }}"
+  when: cephadm_host_location | length > 0

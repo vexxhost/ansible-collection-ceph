@@ -1,0 +1,63 @@
+# Copyright (c) 2026 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+# Remove the stock default zone/zonegroup and default.rgw.* pools that a plain
+# RGW leaves behind. Destructive — only runs when ceph_rgw_remove_default_resources is set.
+- name: List RGW zones
+  ansible.builtin.command: >-
+    cephadm shell --fsid {{ ceph_fsid }} --config {{ _ceph_admin_config }}
+    -- radosgw-admin zone list --format json
+  register: _rgw_zone_list
+  changed_when: false
+  delegate_to: "{{ ceph_rgw_admin_host }}"
+
+- name: Remove the default zone / zonegroup / pools
+  when: '"default" in (_rgw_zone_list.stdout | from_json).zones'
+  delegate_to: "{{ ceph_rgw_admin_host }}"
+  block:
+    - name: Remove the default zonegroup
+      vexxhost.ceph.radosgw_zonegroup:
+        name: default
+        realm: ""
+        state: absent
+
+    - name: Remove the default zone
+      vexxhost.ceph.radosgw_zone:
+        name: default
+        realm: ""
+        zonegroup: ""
+        state: absent
+
+    - name: Allow pool deletion
+      vexxhost.ceph.config:
+        who: mon
+        option: mon_allow_pool_delete
+        value: "true"
+
+    - name: Remove the default RGW pools
+      vexxhost.ceph.pool:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - default.rgw.control
+        - default.rgw.log
+        - default.rgw.meta
+      loop_control:
+        label: "{{ item }}"
+
+    - name: Disallow pool deletion again
+      vexxhost.ceph.config:
+        who: mon
+        option: mon_allow_pool_delete
+        value: "false"

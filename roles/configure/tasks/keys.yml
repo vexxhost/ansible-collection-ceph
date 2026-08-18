@@ -12,19 +12,18 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-galaxy_info:
-  author: VEXXHOST, Inc.
-  description: Ansible role for Ceph manager
-  license: Apache-2.0
-  min_ansible_version: 5.5.0
-  standalone: false
-  platforms:
-    - name: Ubuntu
-      versions:
-        - focal
-        - jammy
-        - noble
-
-dependencies:
-  - role: defaults
-  - role: cephadm
+- name: Configure CephX keys
+  vexxhost.ceph.key:
+    name: "{{ item.name }}"
+    caps: "{{ item.caps }}"
+    secret: "{{ item.secret | default(omit, true) }}"
+    dest: "{{ item.dest | default(omit, true) }}"
+    import_key: "{{ item.import_key | default(omit, true) }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ ceph_keys }}"
+  loop_control:
+    loop_var: item
+    label: "{{ item.name }}"
+  run_once: true
+  delegate_to: "{{ ceph_configure_admin_host }}"
+  no_log: true    # cephx secrets
