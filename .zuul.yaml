@@ -183,7 +183,7 @@
           master: true
           default: true
           endpoints:
-            - "https://{{ hostvars[groups['controllers'][0]].ansible_default_ipv4.address | default(groups['controllers'][0]) }}:8080"
+            - "https://{{ hostvars[groups['controllers'][0]].ansible_default_ipv4.address }}:8080"
       ceph_rgw_zones:
         - name: molecule-1
           realm: molecule
@@ -191,12 +191,10 @@
           master: true
           default: true
           endpoints:
-            - "https://{{ hostvars[groups['controllers'][0]].ansible_default_ipv4.address | default(groups['controllers'][0]) }}:8080"
+            - "https://{{ hostvars[groups['controllers'][0]].ansible_default_ipv4.address }}:8080"
       ceph_rgw_services:
         - id: molecule
           count_per_host: 1
-          networks:
-            - "{{ ceph_public_network }}"
           spec:
             rgw_realm: molecule
             rgw_zonegroup: molecule

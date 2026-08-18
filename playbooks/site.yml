@@ -46,6 +46,7 @@
     - role: rgw
       tags:
         - ceph-rgw
+      when: ceph_rgw_enabled | bool
 
 - name: Deploy Ceph monitoring stack
   hosts: "{{ ceph_mon_group | default('controllers') }}"
