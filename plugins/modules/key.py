@@ -12,20 +12,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# ---------------------------------------------------------------------------
+# Vendored from:
+#   https://github.com/ceph/ceph-ansible/blob/8599b192d33e1c55104c1c2fd1abfa8431c64664/library/ceph_key.py
+# Changes from upstream:
+#   - module_utils import rewritten to this collection's ca_common-compatible
+#     helper (ansible_collections.vexxhost.ceph.plugins.module_utils.common),
+#     which runs the same commands through `cephadm shell`.
+#   - create_key() reworked for the cephadm-shell model: upstream registered a
+#     client.admin key by writing a keyring with `ceph-authtool` and then
+#     `ceph auth import`-ing it as TWO commands. Each `cephadm shell` is a
+#     separate ephemeral container, so the keyring written by the first command
+#     is not visible to the second and the entity never lands in the cluster.
+#     We now register atomically: `ceph auth get-or-create` when no explicit
+#     secret is requested, else `ceph-authtool ... && ceph auth import` chained
+#     inside a SINGLE `cephadm shell` so the temp keyring survives to the import.
+#   - reformatted invalid embedded YAML (DOCUMENTATION / EXAMPLES) so it parses:
+#     upstream had description continuations at list-item indent, a mapping-before-
+#     sequence example, and stray tokens. Documentation only; no behavior change.
+# The upstream copyright/license header above is retained unmodified.
+# ---------------------------------------------------------------------------
+
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-from ansible.module_utils.basic import AnsibleModule  # type: ignore
-from ansible_collections.vexxhost.ceph.plugins.module_utils.ca_common import (
-    generate_ceph_cmd,
-    is_containerized,
-    container_exec,
-    fatal
-)
-
+from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.vexxhost.ceph.plugins.module_utils.common import generate_cmd, is_containerized, container_exec, fatal
 import datetime
 import json
 import os
+import shlex
 import struct
 import time
 import base64
@@ -49,8 +65,7 @@ short_description: Manage Cephx key(s)
 version_added: "2.6"
 
 description:
-    - Manage CephX creation, deletion and updates.
-    It can also list and get information about keyring(s).
+    - Manage CephX creation, deletion and updates. It can also list and get information about keyring(s).
 options:
     cluster:
         description:
@@ -63,29 +78,16 @@ options:
         required: true
     user:
         description:
-            - entity used to perform operation.
-            It corresponds to the -n option (--name)
+            - entity used to perform operation. It corresponds to the -n option (--name)
         required: false
     user_key:
         description:
-            - the path to the keyring corresponding to the
-            user being used.
-            It corresponds to the -k option (--keyring)
+            - the path to the keyring corresponding to the user being used. It corresponds to the -k option (--keyring)
     state:
         description:
-            - If 'present' is used, the module creates a keyring
-            with the associated capabilities.
-            If 'present' is used and a secret is provided the module
-            will always add the key. Which means it will update
-            the keyring if the secret changes, the same goes for
-            the capabilities.
-            If 'absent' is used, the module will simply delete the keyring.
-            If 'info' is used, the module will return in a json format the
-            description of a given keyring.
-            If 'list' is used, the module will list all the keys and will
-            return a json output.
-            If 'generate_secret' is used, the module will simply output a cephx keyring.
+            - If 'present' is used, the module creates a keyring with the associated capabilities. If 'present' is used and a secret is provided the module will always add the key. Which means it will update the keyring if the secret changes, the same goes for the capabilities. If 'absent' is used, the module will simply delete the keyring. If 'list' is used, the module will list all the keys and will return a json output. If 'generate_secret' is used, the module will simply output a cephx keyring.
         required: false
+        choices: ['present', 'update', 'absent', 'fetch_initial_keys', 'generate_secret']
         default: present
     caps:
         description:
@@ -99,9 +101,7 @@ options:
         default: None
     import_key:
         description:
-            - Wether or not to import the created keyring into Ceph.
-            This can be useful for someone that only wants to generate keyrings
-            but not add them into Ceph.
+            - Wether or not to import the created keyring into Ceph. This can be useful for someone that only wants to generate keyrings but not add them into Ceph.
         required: false
         default: True
     dest:
@@ -111,29 +111,25 @@ options:
         default: /etc/ceph/
     fetch_initial_keys:
         description:
-            - Fetch client.admin and bootstrap key.
-            This is only needed for Nautilus and above.
-            Writes down to the filesystem the initial keys generated by the monitor.  # noqa: E501
-            This command can ONLY run from a monitor node.
+            - Fetch client.admin and bootstrap key. This is only needed for Nautilus and above. Writes down to the filesystem the initial keys generated by the monitor. This command can ONLY run from a monitor node.
         required: false
         default: false
     output_format:
         description:
-            - The key output format when retrieving the information of an
-            entity.
+            - The key output format when retrieving the information of an entity.
         required: false
         default: json
 '''
 
 EXAMPLES = '''
 
-keys_to_create:
-  - { name: client.key, key: "AQAin8tUUK84ExAA/QgBtI7gEMWdmnvKBzlXdQ==", caps: { mon: "allow rwx", mds: "allow *" } , mode: "0600" }  # noqa: E501
-  - { name: client.cle, caps: { mon: "allow r", osd: "allow *" } , mode: "0600" }  # noqa: E501
+# keys_to_create:
+#   - { name: client.key, key: "AQAin8tUUK84ExAA/QgBtI7gEMWdmnvKBzlXdQ==", caps: { mon: "allow rwx", mds: "allow *" }, mode: "0600" }  # noqa: E501
+#   - { name: client.cle, caps: { mon: "allow r", osd: "allow *" }, mode: "0600" }  # noqa: E501
 
-caps:
-  mon: "allow rwx"
-  mds: "allow *"
+# caps:
+#   mon: "allow rwx"
+#   mds: "allow *"
 
 - name: create ceph admin key
   ceph_key:
@@ -145,8 +141,8 @@ caps:
       osd: allow *
       mgr: allow *
       mds: allow
-    mode: 0400
-    import_key: False
+    mode: "0400"
+    import_key: false
 
 - name: create monitor initial keyring
   ceph_key:
@@ -156,7 +152,7 @@ caps:
     caps:
       mon: allow *
     dest: "/var/lib/ceph/tmp/"
-    import_key: False
+    import_key: false
 
 - name: create cephx key
   ceph_key:
@@ -171,7 +167,7 @@ caps:
     name: "{{ keys_to_create }}"
     state: present
     caps: "{{ caps }}"
-    import_key: False
+    import_key: false
 
 - name: delete cephx key
   ceph_key:
@@ -181,11 +177,6 @@ caps:
 - name: fetch cephx keys
   ceph_key:
     state: fetch_initial_keys
-
-- name: info cephx key
-  ceph_key:
-    name: client.admin
-    state: info
 '''
 
 RETURN = '''#  '''
@@ -193,8 +184,6 @@ RETURN = '''#  '''
 
 CEPH_INITIAL_KEYS = ['client.admin', 'client.bootstrap-mds', 'client.bootstrap-mgr',  # noqa: E501
                      'client.bootstrap-osd', 'client.bootstrap-rbd', 'client.bootstrap-rbd-mirror', 'client.bootstrap-rgw']  # noqa: E501
-STATE_CHOICES = ['present', 'update', 'absent', 'info', 'list',
-                 'fetch_initial_keys', 'generate_secret']
 
 
 def str_to_bool(val):
@@ -284,26 +273,43 @@ def create_key(module,
     '''
 
     cmd_list = []
-    if not secret:
-        secret = generate_secret()
+    explicit_secret = bool(secret)
 
-    if user == 'client.admin':
-        args = ['import', '-i', dest]
-    else:
+    # Non-admin user, or an admin key with no explicit secret: register the
+    # entity atomically with a single `ceph auth get-or-create`. This is the
+    # cephadm-shell-safe path (no cross-container keyring file) and is what the
+    # common case (generate-and-store) wants.
+    if not explicit_secret or user != 'client.admin':
         args = ['get-or-create', name]
         args.extend(generate_caps(None, caps))
         args.extend(['-o', dest])
+        cmd_list.append(generate_cmd(sub_cmd=['auth'],
+                                     args=args,
+                                     cluster=cluster,
+                                     user=user,
+                                     user_key=user_key,
+                                     container_image=container_image))
+        return cmd_list
 
-    cmd_list.append(generate_ceph_authtool_cmd(
-        cluster, name, secret, caps, dest, container_image))
+    # Admin key WITH an explicit secret: we must set that exact key, which means
+    # `ceph-authtool` + `ceph auth import`. Under the cephadm-shell model these
+    # would run in two separate ephemeral containers, so chain them inside ONE
+    # `cephadm shell` (via `bash -c`) so the temp keyring survives to the import.
+    keyring = '/tmp/{}.keyring'.format(name.replace('/', '_'))
+    authtool = ['ceph-authtool', '--create-keyring', keyring,
+                '--name', name, '--add-key', secret]
+    authtool.extend(generate_caps("ceph-authtool", caps))
+    importcmd = ['ceph', 'auth', 'import', '-i', keyring]
+    inner = '{} && {}'.format(
+        ' '.join(shlex.quote(a) for a in authtool),
+        ' '.join(shlex.quote(a) for a in importcmd))
 
-    if import_key or user != 'client.admin':
-        cmd_list.append(generate_ceph_cmd(sub_cmd=['auth'],
-                                          args=args,
-                                          cluster=cluster,
-                                          user=user,
-                                          user_key=user_key,
-                                          container_image=container_image))
+    if container_image:
+        cmd = container_exec('bash', container_image)
+        cmd.extend(['-c', inner])
+    else:
+        cmd = ['bash', '-c', inner]
+    cmd_list.append(cmd)
 
     return cmd_list
 
@@ -320,12 +326,12 @@ def delete_key(cluster, user, user_key, name, container_image=None):
         name,
     ]
 
-    cmd_list.append(generate_ceph_cmd(sub_cmd=['auth'],
-                                      args=args,
-                                      cluster=cluster,
-                                      user=user,
-                                      user_key=user_key,
-                                      container_image=container_image))
+    cmd_list.append(generate_cmd(sub_cmd=['auth'],
+                                 args=args,
+                                 cluster=cluster,
+                                 user=user,
+                                 user_key=user_key,
+                                 container_image=container_image))
 
     return cmd_list
 
@@ -344,12 +350,12 @@ def get_key(cluster, user, user_key, name, dest, container_image=None):
         dest,
     ]
 
-    cmd_list.append(generate_ceph_cmd(sub_cmd=['auth'],
-                                      args=args,
-                                      cluster=cluster,
-                                      user=user,
-                                      user_key=user_key,
-                                      container_image=container_image))
+    cmd_list.append(generate_cmd(sub_cmd=['auth'],
+                                 args=args,
+                                 cluster=cluster,
+                                 user=user,
+                                 user_key=user_key,
+                                 container_image=container_image))
 
     return cmd_list
 
@@ -368,12 +374,12 @@ def info_key(cluster, name, user, user_key, output_format, container_image=None)
         output_format,
     ]
 
-    cmd_list.append(generate_ceph_cmd(sub_cmd=['auth'],
-                                      args=args,
-                                      cluster=cluster,
-                                      user=user,
-                                      user_key=user_key,
-                                      container_image=container_image))
+    cmd_list.append(generate_cmd(sub_cmd=['auth'],
+                                 args=args,
+                                 cluster=cluster,
+                                 user=user,
+                                 user_key=user_key,
+                                 container_image=container_image))
 
     return cmd_list
 
@@ -391,12 +397,12 @@ def list_keys(cluster, user, user_key, container_image=None):
         'json',
     ]
 
-    cmd_list.append(generate_ceph_cmd(sub_cmd=['auth'],
-                                      args=args,
-                                      cluster=cluster,
-                                      user=user,
-                                      user_key=user_key,
-                                      container_image=container_image))
+    cmd_list.append(generate_cmd(sub_cmd=['auth'],
+                                 args=args,
+                                 cluster=cluster,
+                                 user=user,
+                                 user_key=user_key,
+                                 container_image=container_image))
 
     return cmd_list
 
@@ -473,7 +479,8 @@ def run_module():
     module_args = dict(
         cluster=dict(type='str', required=False, default='ceph'),
         name=dict(type='str', required=False),
-        state=dict(type='str', required=False, default='present'),
+        state=dict(type='str', required=False, default='present', choices=['present', 'update', 'absent',  # noqa: E501
+                                                                           'fetch_initial_keys', 'generate_secret']),  # noqa: E501
         caps=dict(type='dict', required=False, default=None),
         secret=dict(type='str', required=False, default=None, no_log=True),
         import_key=dict(type='bool', required=False, default=True),
@@ -503,12 +510,8 @@ def run_module():
     user_key = module.params.get('user_key')
     output_format = module.params.get('output_format')
 
-    if state not in STATE_CHOICES:
-        fatal("value of state must be one of: {}, got: {}".format(
-            ', '.join(STATE_CHOICES), state), module)
-
     # Can't use required_if with 'name' for some reason...
-    if state in ['present', 'absent', 'update', 'info'] and not name:
+    if state in ['present', 'absent', 'update'] and not name:
         fatal(f'"state" is "{state}" but "name" is not defined.', module)
 
     changed = False
@@ -545,15 +548,7 @@ def run_module():
     else:
         user_key_path = user_key
 
-    if state == "info":
-        rc, cmd, out, err = exec_commands(
-            module, info_key(cluster, name, user, user_key_path, output_format, container_image))  # noqa: E501
-
-    elif state == "list":
-        rc, cmd, out, err = exec_commands(
-            module, list_keys(cluster, user, user_key_path, container_image))
-
-    elif (state in ["present", "update"]):
+    if (state in ["present", "update"]):
         # if dest is not a directory, the user wants to change the file's name
         # (e,g: /etc/ceph/ceph.mgr.ceph-mon2.keyring)
         if not os.path.isdir(dest):

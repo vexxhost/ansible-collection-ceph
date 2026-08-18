@@ -3,15 +3,11 @@
 # Author: Guillaume Abrioux <gabrioux@redhat.com>
 
 from __future__ import absolute_import, division, print_function
+from typing import Any, Dict, List, Tuple, Union
 __metaclass__ = type
 
 from ansible.module_utils.basic import AnsibleModule  # type: ignore
-from ansible_collections.vexxhost.ceph.plugins.module_utils.ca_common import (
-    exit_module,
-    generate_ceph_cmd,
-    is_containerized,
-    fatal
-)
+from ansible_collections.vexxhost.ceph.plugins.module_utils.common import exit_module, build_base_cmd_shell, fatal
 
 import datetime
 import json
@@ -24,7 +20,7 @@ ANSIBLE_METADATA = {
 
 DOCUMENTATION = '''
 ---
-module: ceph_config
+module: config
 short_description: set ceph config
 version_added: "2.10"
 description:
@@ -62,21 +58,21 @@ author:
 
 EXAMPLES = '''
 - name: set osd_memory_target for osd.0
-  ceph_config:
+  config:
     action: set
     who: osd.0
     option: osd_memory_target
     value: 5368709120
 
 - name: set osd_memory_target for host ceph-osd-02
-  ceph_config:
+  config:
     action: set
     who: osd/host:ceph-osd-02
     option: osd_memory_target
     value: 5368709120
 
 - name: get osd_pool_default_size value
-  ceph_config:
+  config:
     action: get
     who: global
     option: osd_pool_default_size
@@ -86,48 +82,21 @@ EXAMPLES = '''
 RETURN = '''#  '''
 
 
-def set_option(module,
-               who,
-               option,
-               value,
-               container_image=None):
-
-    args = []
-    args.extend([who, option, value])
-
-    cmd = generate_ceph_cmd(sub_cmd=['config', 'set'],
-                       args=args,
-                       cluster=module.params.get('cluster'),
-                       container_image=container_image)
+def set_option(module: "AnsibleModule",
+               who: str,
+               option: str,
+               value: str) -> Tuple[int, List[str], str, str]:
+    cmd = build_base_cmd_shell(module)
+    cmd.extend(['ceph', 'config', 'set', who, option, value])
 
     rc, out, err = module.run_command(cmd)
 
     return rc, cmd, out.strip(), err
 
 
-def rm_option(module,
-              who,
-              option,
-              container_image=None):
-
-    args = []
-    args.extend([who, option])
-
-    cmd = generate_ceph_cmd(sub_cmd=['config', 'rm'],
-                       args=args,
-                       cluster=module.params.get('cluster'),
-                       container_image=container_image)
-
-    rc, out, err = module.run_command(cmd)
-
-    return rc, cmd, out.strip(), err
-
-
-def get_config_dump(module, container_image=None):
-    cmd = generate_ceph_cmd(sub_cmd=['config', 'dump', '--format', 'json'],
-                       args=[],
-                       cluster=module.params.get('cluster'),
-                       container_image=container_image)
+def get_config_dump(module: "AnsibleModule") -> Tuple[int, List[str], str, str]:
+    cmd = build_base_cmd_shell(module)
+    cmd.extend(['ceph', 'config', 'dump', '--format', 'json'])
     rc, out, err = module.run_command(cmd)
     if rc:
         fatal(message=f"Can't get current configuration via `ceph config dump`.Error:\n{err}", module=module)
@@ -135,7 +104,7 @@ def get_config_dump(module, container_image=None):
     return rc, cmd, out, err
 
 
-def get_current_value(who, option, config_dump):
+def get_current_value(who: str, option: str, config_dump: List[Dict[str, Any]]) -> Union[str, None]:
     for config in config_dump:
         if config['section'] == who and config['name'] == option:
             return config['value']
@@ -146,12 +115,11 @@ def main() -> None:
     module = AnsibleModule(
         argument_spec=dict(
             who=dict(type='str', required=True),
-            action=dict(type='str', required=False, choices=['get', 'set', 'rm'], default='set'),
+            action=dict(type='str', required=False, choices=['get', 'set'], default='set'),
             option=dict(type='str', required=True),
             value=dict(type='str', required=False),
             fsid=dict(type='str', required=False),
-            image=dict(type='str', required=False),
-            cluster=dict(type='str', required=False, default='ceph')
+            image=dict(type='str', required=False)
         ),
         supports_check_mode=True,
         required_if=[['action', 'set', ['value']]]
@@ -162,8 +130,6 @@ def main() -> None:
     option = module.params.get('option')
     value = module.params.get('value')
     action = module.params.get('action')
-
-    container_image = is_containerized()
 
     if module.check_mode:
         module.exit_json(
@@ -180,26 +146,22 @@ def main() -> None:
     startd = datetime.datetime.now()
     changed = False
 
-    rc, cmd, out, err = get_config_dump(module, container_image=container_image)
+    rc, cmd, out, err = get_config_dump(module)
     config_dump = json.loads(out)
     current_value = get_current_value(who, option, config_dump)
 
     if action == 'set':
-        if current_value and value.lower() == current_value.lower():
+        if value.lower() == current_value:
             out = 'who={} option={} value={} already set. Skipping.'.format(who, option, value)
         else:
-            rc, cmd, out, err = set_option(module, who, option, value, container_image=container_image)
+            rc, cmd, out, err = set_option(module, who, option, value)
             changed = True
-    elif action == 'get':
+    else:
         if current_value is None:
             out = ''
             err = 'No value found for who={} option={}'.format(who, option)
         else:
             out = current_value
-    elif action == 'rm':
-        if current_value:
-            rc, cmd, out, err = rm_option(module, who, option, container_image=container_image)
-            changed = True
 
     exit_module(module=module, out=out, rc=rc,
                 cmd=cmd, err=err, startd=startd,

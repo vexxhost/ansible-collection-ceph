@@ -1,0 +1,79 @@
+# Copyright (c) 2026 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+# Snapshot the current RGW specs BEFORE applying, so we can tell whether an
+# SSL-related field changed (needed because ceph_orch_apply reports a generic
+# "changed", not which field). Keyed by service_name (rgw.<id>). Empty/first run
+# -> {} (no current specs).
+- name: Snapshot current RGW service specs
+  ansible.builtin.command: >-
+    cephadm shell --fsid {{ ceph_fsid }} --config {{ _ceph_admin_config }}
+    -- ceph orch ls --service-type rgw --format json
+  register: _rgw_ls_raw
+  changed_when: false
+  delegate_to: "{{ ceph_rgw_admin_host }}"
+
+- name: Index current RGW specs by service name
+  vars:
+    _rgw_ls: "{{ (_rgw_ls_raw.stdout | from_json) if (_rgw_ls_raw.stdout | trim)[:1] in ['[', '{'] else [] }}"
+  ansible.builtin.set_fact:
+    _rgw_current: "{{ dict(_rgw_ls | map(attribute='service_name') | zip(_rgw_ls)) }}"
+
+# Build each RGW service spec flexibly (count_per_host optional, networks as a
+# string or list, arbitrary spec merge) and apply it idempotently.
+- name: Apply the RGW service specs
+  vexxhost.ceph.orch_apply:
+    spec: "{{ _rgw_service_spec | to_nice_yaml }}"
+  vars:
+    _rgw_placement: >-
+      {{ {'label': 'rgw'}
+         | combine({'count_per_host': item.count_per_host} if item.count_per_host is defined else {}) }}
+    _rgw_service_spec: >-
+      {{ {'service_type': 'rgw', 'service_id': item.id, 'placement': _rgw_placement}
+         | combine({'networks': ([item.networks] if item.networks is string else item.networks)}
+                   if item.networks is defined else {})
+         | combine({'spec': item.spec} if item.spec is defined else {}) }}
+  loop: "{{ ceph_rgw_services }}"
+  loop_control:
+    loop_var: item
+    label: "{{ item.id }}"
+  delegate_to: "{{ ceph_rgw_admin_host }}"
+
+# Some spec changes only take effect on a REDEPLOY (reconfig is not enough) —
+# notably SSL/cert and the frontend listener. Redeploy a service only when one of
+# the redeploy-triggering keys it declares differs from the pre-apply spec: a
+# subset compare over ceph_rgw_redeploy_spec_keys, restricted to the keys the user
+# actually sets (so e.g. `generate_cert` doesn't fight the cert cephadm fills in).
+# Routine converges that touch none of these keys cause no RGW restart.
+- name: Redeploy RGW services whose redeploy-triggering keys changed
+  ansible.builtin.command: >-
+    cephadm shell --fsid {{ ceph_fsid }} --config {{ _ceph_admin_config }}
+    -- ceph orch redeploy rgw.{{ item.id }}
+  changed_when: true
+  vars:
+    _desired_keys: >-
+      {{ (item.spec | default({})) | dict2items
+         | selectattr('key', 'in', ceph_rgw_redeploy_spec_keys) | items2dict }}
+    _current_keys: >-
+      {{ ((_rgw_current['rgw.' ~ item.id] | default({})).spec | default({})) | dict2items
+         | selectattr('key', 'in', _desired_keys.keys() | list) | items2dict }}
+  loop: "{{ ceph_rgw_services }}"
+  loop_control:
+    loop_var: item
+    label: "rgw.{{ item.id }}"
+  when:
+    - ceph_rgw_redeploy_on_change | bool
+    - ('rgw.' ~ item.id) in _rgw_current
+    - _desired_keys != _current_keys
+  delegate_to: "{{ ceph_rgw_admin_host }}"

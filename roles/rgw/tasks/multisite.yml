@@ -1,0 +1,77 @@
+# Copyright (c) 2026 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+- name: Configure RGW realms
+  vexxhost.ceph.radosgw_realm:
+    name: "{{ item.name }}"
+    default: "{{ item.default | default(omit) }}"
+    url: "{{ item.url | default(omit, true) }}"
+    access_key: "{{ item.access_key | default(omit, true) }}"
+    secret_key: "{{ item.secret_key | default(omit, true) }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ ceph_rgw_realms }}"
+  loop_control:
+    loop_var: item
+    label: "{{ item.name }}"
+  register: _rgw_realm
+  delegate_to: "{{ ceph_rgw_admin_host }}"
+
+- name: Configure RGW zonegroups
+  vexxhost.ceph.radosgw_zonegroup:
+    name: "{{ item.name }}"
+    realm: "{{ item.realm }}"
+    master: "{{ item.master | default(omit) }}"
+    default: "{{ item.default | default(omit) }}"
+    endpoints: "{{ item.endpoints | default(omit, true) }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ ceph_rgw_zonegroups }}"
+  loop_control:
+    loop_var: item
+    label: "{{ item.name }}"
+  register: _rgw_zonegroup
+  delegate_to: "{{ ceph_rgw_admin_host }}"
+
+- name: Configure RGW zones
+  vexxhost.ceph.radosgw_zone:
+    name: "{{ item.name }}"
+    realm: "{{ item.realm }}"
+    zonegroup: "{{ item.zonegroup }}"
+    master: "{{ item.master | default(omit) }}"
+    default: "{{ item.default | default(omit) }}"
+    endpoints: "{{ item.endpoints | default(omit, true) }}"
+    access_key: "{{ item.access_key | default(omit, true) }}"
+    secret_key: "{{ item.secret_key | default(omit, true) }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ ceph_rgw_zones }}"
+  loop_control:
+    loop_var: item
+    label: "{{ item.name }}"
+  register: _rgw_zone
+  delegate_to: "{{ ceph_rgw_admin_host }}"
+  no_log: true      # zone access/secret keys
+
+# Multisite changes don't reliably activate without a
+# committed period. A period can only be committed once a master zonegroup AND
+# master zone exist, so require both to be defined (a realm alone has no master
+# zone) — and only commit when something actually changed.
+- name: Commit the RGW period
+  ansible.builtin.command: >-
+    cephadm shell --fsid {{ ceph_fsid }} --config {{ _ceph_admin_config }}
+    -- radosgw-admin period update --commit
+  changed_when: true
+  delegate_to: "{{ ceph_rgw_admin_host }}"
+  when:
+    - ceph_rgw_zonegroups | length > 0
+    - ceph_rgw_zones | length > 0
+    - (_rgw_realm is changed) or (_rgw_zonegroup is changed) or (_rgw_zone is changed)

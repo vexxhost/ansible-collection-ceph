@@ -1,7 +1,24 @@
-# Copyright (c) 2025 VEXXHOST, Inc.
+# Copyright (c) 2026 VEXXHOST, Inc.
 # SPDX-License-Identifier: Apache-2.0
 
-cephadm_version: "{{ ceph_version | default('20.2.3') }}"
+# cephadm is a single noarch Python script; we fetch the binary directly
+# rather than adding a package repo.
+# Checksums are keyed by ceph version (noarch — one digest per release).
+
+cephadm_checksums:
+  19.2.0: a58127a8eed242cae13849ddbebcb9931d7a5410f406f2d264e3b1ed31d9605e
+  19.2.1: c6d8d2eb72a60267f2844dd3167700619f1207413db7701f1827abf652e86a11
+  19.2.2: e2b78d38c8b7ec4ef00612ed046678feceb37baccd3990bc21df1538095d27c9
+  19.2.3: 1a8853661a9c1798390b8e8d13c27688c1b1327a075745af2ee40ac466f0ac36
+  20.1.0: 07ba6d1a818cf6ded98e09fc882a9f4f1772aeb82d4664369096243131efe94f
+  20.2.0: ed5a13ad26f7f55dd30e9b63855e4e581fd86973bec1d21a12ed0bb26af19c8b
+  20.2.1: adad9831a4ae859e2d821824af737976d3c320e84de60143bcc164c945bb3f5e
+  20.2.2: 42daa0d45411be4c8bb16fe92e265c59cc21fc86cd0040b96409c80ba0da884c
+  20.2.3: a570271137e5826d389dd3fafe8b45c732aa7636e13e98d08a4ede27518baafe
+
+cephadm_binary_checksum: "{{ cephadm_checksums[ceph_version] }}"
+cephadm_download_url: "https://download.ceph.com/rpm-{{ ceph_version }}/el9/noarch/cephadm"
+cephadm_download_dest: /usr/bin/cephadm
 
 cephadm_http_proxy: "{{ http_proxy | default('') }}"
 cephadm_https_proxy: "{{ https_proxy | default('') }}"

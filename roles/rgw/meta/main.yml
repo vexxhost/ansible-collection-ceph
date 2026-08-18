@@ -12,18 +12,19 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# Filesystem ID
-ceph_exporter_fsid: "{{ ceph_fsid }}"
+galaxy_info:
+  author: VEXXHOST, Inc.
+  description: Deploy RADOS Gateway (services, multisite; no ingress)
+  license: Apache-2.0
+  min_ansible_version: 5.5.0
+  standalone: false
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+        - noble
 
-# Inventory group for Ceph monitors
-ceph_exporter_mon_group: "{{ ceph_control_plane_group | default('controllers') }}"
-
-ceph_exporter_admin_host: "{{ _ceph_mon_bootstrap_node | default(groups[ceph_exporter_mon_group][0]) }}"
-ceph_exporter_service_name: ceph-exporter
-ceph_exporter_placement:
-  host_pattern: "*"
-
-ceph_exporter_service_spec:
-  service_type: ceph-exporter
-  service_name: "{{ ceph_exporter_service_name }}"
-  placement: "{{ ceph_exporter_placement }}"
+dependencies:
+  - role: defaults
+  - role: cephadm

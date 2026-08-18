@@ -31,32 +31,46 @@
     state: started
   loop: "{{ cephadm_services }}"
 
-- name: Download "cephadm"
-  ansible.builtin.get_url:
-    url: "https://download.ceph.com/rpm-{{ cephadm_version }}/el9/noarch/cephadm"
-    # NOTE(fitbeard): We use sudo and on RHEL default sudoers 'secure_path = /sbin:/bin:/usr/sbin:/usr/bin'
-    dest: /usr/bin/cephadm
-    mode: '0755'
-    force: true
-  environment: "{{ _cephadm_environment }}"
-
 - name: Remove cephadm from old path
   ansible.builtin.file:
     path: /usr/local/bin/cephadm
     state: absent
 
-- name: Ensure "cephadm" user is present
+- name: Ensure the cephadm SSH user exists
   ansible.builtin.user:
-    name: cephadm
+    name: "{{ ceph_ssh_user }}"
     shell: /bin/bash
     create_home: true
 
-- name: Allow "cephadm" user to have passwordless sudo
-  ansible.builtin.lineinfile:
-    path: /etc/sudoers.d/cephadm
+- name: Grant passwordless sudo to the cephadm SSH user
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/{{ ceph_ssh_user }}"
     owner: root
     group: root
-    mode: '0440'
-    create: true
-    line: "cephadm ALL=(ALL) NOPASSWD:ALL"
-    validate: 'visudo -cf %s'
+    mode: "0440"
+    content: "{{ ceph_ssh_user }} ALL=(ALL) NOPASSWD:ALL\n"
+    validate: "visudo -cf %s"
+
+- name: Log in to the container registry
+  community.docker.docker_login:
+    registry: "{{ ceph_registry_url }}"
+    username: "{{ ceph_registry_username }}"
+    password: "{{ ceph_registry_password }}"
+  when: ceph_registry_username | length > 0
+
+- name: Pre-pull the Ceph image
+  community.docker.docker_image:
+    name: "{{ ceph_image }}"
+    source: pull
+    state: present
+
+- name: Pin CEPHADM_IMAGE for interactive login shells
+  ansible.builtin.copy:
+    dest: /etc/profile.d/cephadm.sh
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by vexxhost.ceph (cephadm role). Speeds up manual
+      # `cephadm shell` by pinning the image (skips image inference).
+      export CEPHADM_IMAGE={{ ceph_image }}

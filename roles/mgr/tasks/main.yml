@@ -1,4 +1,4 @@
-# Copyright (c) 2022 VEXXHOST, Inc.
+# Copyright (c) 2026 VEXXHOST, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -12,45 +12,70 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-- name: Install Ceph host
-  ansible.builtin.include_role:
-    name: vexxhost.ceph.cephadm_host
-  vars:
-    cephadm_host_admin_host: "{{ _ceph_mon_bootstrap_node | default(groups[ceph_mon_group][0]) }}"
-    cephadm_host_labels:
-      - _admin
-      - mgr
-
-- name: Configure "mgr" label for managers
-  delegate_to: "{{ _ceph_mon_bootstrap_node | default(groups[ceph_mon_group][0]) }}"
+# Admin-host selection first, so the block below can point CEPHADM_CONFIG at it.
+- name: Locate the cluster admin host
+  ansible.builtin.stat:
+    path: "/var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[item]['inventory_hostname_short'] }}/store.db"
+  register: _mon_store_stat
+  loop: "{{ groups[ceph_mon_group] }}"
+  delegate_to: "{{ item }}"
   run_once: true
-  vexxhost.ceph.orch_apply:
-    fsid: "{{ ceph_mgr_fsid }}"
-    image: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.3'))) }}"
-    docker: true
-    spec: |
-      service_type: mgr
-      service_name: mgr
-      placement:
-        label: mgr
 
-- name: Validate manager exist
-  ansible.builtin.command: |
-    cephadm shell
-      --fsid "{{ ceph_mgr_fsid }}"
-      --config "/var/lib/ceph/{{ ceph_mgr_fsid }}/mon.{{ inventory_hostname_short }}/config"
-      -- ceph orch ps --daemon_type mgr --hostname "{{ inventory_hostname_short }}"
-  register: ps_result
-  until: ps_result.stdout | length > 0
-  retries: "{{ ceph_mon_check_retry | default(120) }}"
-  delay: 3
-  changed_when: false
+- name: Select the admin host
+  ansible.builtin.set_fact:
+    ceph_mgr_admin_host: >-
+      {{ _mon_store_stat.results | selectattr('stat.exists', 'equalto', true)
+         | map(attribute='item') | first | default(groups[ceph_mon_group][0]) }}
 
-- name: Configure manager modules
-  run_once: true
-  vexxhost.ceph.mgr_module:
-    name: "{{ item.name }}"
-    state: "{{ item.state | default('enable') }}"
-  loop: "{{ ceph_mgr_modules }}"
-  loop_control:
-    loop_var: item
+- name: Deploy Ceph managers
+  environment: >-
+    {{ ceph_environment | combine({'CEPHADM_CONFIG':
+       '/var/lib/ceph/' ~ ceph_fsid ~ '/mon.'
+       ~ hostvars[ceph_mgr_admin_host].inventory_hostname_short ~ '/config'}) }}
+  block:
+    - name: Register this manager host
+      ansible.builtin.include_role:
+        name: vexxhost.ceph.cephadm_host
+      vars:
+        cephadm_host_admin_host: "{{ ceph_mgr_admin_host }}"
+        cephadm_host_public_key: "{{ ceph_ssh_public_key }}"
+        cephadm_host_location: "{{ ceph_host_location }}"
+
+    - name: Apply the manager service spec
+      vexxhost.ceph.orch_apply:
+        spec: |
+          service_type: mgr
+          service_name: mgr
+          placement:
+            label: mgr
+      run_once: true
+      delegate_to: "{{ ceph_mgr_admin_host }}"
+
+    - name: Wait for this manager's daemon to be present
+      # No native module for "wait until a daemon is present". Query from the
+      # admin mon. Do NOT point `cephadm shell --config` at THIS host's mon config
+      # — on a host whose mon isn't up that path is missing and the container
+      # bind-mount would CREATE it as a directory, corrupting the mon data dir.
+      ansible.builtin.command: >-
+        cephadm shell
+        --fsid {{ ceph_fsid }}
+        --config /var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[ceph_mgr_admin_host].inventory_hostname_short }}/config
+        -- ceph orch ps --daemon_type mgr --hostname {{ inventory_hostname_short }}
+      register: _mgr_ps
+      until: _mgr_ps.stdout | length > 0
+      retries: "{{ ceph_mgr_check_retry }}"
+      delay: 3
+      changed_when: false
+      delegate_to: "{{ ceph_mgr_admin_host }}"
+
+    - name: Configure ceph-mgr modules
+      # Not in the cephadm action group (no fsid/image); fsid/config/image come
+      # via the CEPHADM_* env, image also via the cephadm binary.
+      vexxhost.ceph.mgr_module:
+        name: "{{ item.name }}"
+        state: "{{ item.state | default('enable') }}"
+      loop: "{{ ceph_mgr_modules }}"
+      loop_control:
+        loop_var: item
+      run_once: true
+      delegate_to: "{{ ceph_mgr_admin_host }}"

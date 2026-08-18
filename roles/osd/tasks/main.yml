@@ -12,73 +12,113 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-- name: Get monitor status
-  run_once: true
+- name: Locate the cluster admin host
   ansible.builtin.stat:
-    path: "/var/lib/ceph/{{ ceph_osd_fsid }}/mon.{{ hostvars[item]['inventory_hostname_short'] }}/store.db"
-  register: _ceph_mon_stat
-  loop: "{{ groups[ceph_osd_mons_group] }}"
+    path: "/var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[item]['inventory_hostname_short'] }}/store.db"
+  register: _mon_store_stat
+  loop: "{{ groups[ceph_mon_group] }}"
   delegate_to: "{{ item }}"
+  run_once: true
 
-- name: Select admin host
+- name: Select the admin host and its mon config path
   ansible.builtin.set_fact:
-    _cephadm_host_admin_host: "{{ _ceph_mon_stat.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | first | default(groups[ceph_osd_mons_group][0]) }}"  # yamllint disable-line rule:line-length
+    ceph_osd_admin_host: >-
+      {{ _mon_store_stat.results | selectattr('stat.exists', 'equalto', true)
+         | map(attribute='item') | first | default(groups[ceph_mon_group][0]) }}
 
-- name: Install Ceph host
-  ansible.builtin.include_role:
-    name: vexxhost.ceph.cephadm_host
-  vars:
-    cephadm_host_admin_host: "{{ _cephadm_host_admin_host }}"
+- name: Set the admin mon config path
+  ansible.builtin.set_fact:
+    _ceph_admin_config: >-
+      /var/lib/ceph/{{ ceph_fsid }}/mon.{{ hostvars[ceph_osd_admin_host].inventory_hostname_short }}/config
 
-- name: Ensure all OSDs are non-legacy
-  ansible.builtin.command:
-    cmd: cephadm ls
-  changed_when: false
-  register: cephadm_ls_stat
-  until: cephadm_ls_stat.stdout | from_json | community.general.json_query(osd_query) | selectattr('style', 'equalto', 'legacy') | list | length == 0  # noqa: yaml[line-length]
-  retries: 120
-  delay: 5
-  vars:
-    osd_query: "[?starts_with(name, 'osd.')]"
+- name: Deploy Ceph OSDs
+  environment: "{{ ceph_environment | combine({'CEPHADM_CONFIG': _ceph_admin_config}) }}"
+  block:
+    - name: Register this OSD host
+      ansible.builtin.include_role:
+        name: vexxhost.ceph.cephadm_host
+      vars:
+        cephadm_host_admin_host: "{{ ceph_osd_admin_host }}"
+        cephadm_host_public_key: "{{ ceph_ssh_public_key }}"
+        cephadm_host_location: "{{ ceph_host_location }}"
 
-- name: Get `ceph-volume lvm list` status
-  ansible.builtin.command: cephadm shell -- ceph-volume lvm list --format json
-  register: ceph_lvm_stat
-  changed_when: false
+    - name: Apply OSD service specs (drive groups)
+      vexxhost.ceph.orch_apply:
+        spec: "{{ item | combine({'service_type': 'osd'}) | to_nice_yaml }}"
+      loop: "{{ ceph_osd_spec }}"
+      loop_control:
+        loop_var: item
+        label: "{{ item.service_id | default('osd') }}"
+      run_once: true
+      delegate_to: "{{ ceph_osd_admin_host }}"
+      when: ceph_osd_spec | length > 0
 
-- name: Install OSDs
-  changed_when: false
-  when: item not in ceph_lvm_stat.stdout
-  delegate_to: "{{ _cephadm_host_admin_host }}"
-  ansible.builtin.command: |
-    cephadm shell
-      --fsid "{{ ceph_osd_fsid }}"
-      --config "/var/lib/ceph/{{ ceph_osd_fsid }}/mon.{{ hostvars[_cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
-      -- ceph orch daemon add osd {{ inventory_hostname_short }}:{{ item }}
-  loop: "{{ ceph_osd_devices }}"
+    - name: List existing ceph-volume OSDs on this host
+      # Local to the OSD host (ceph-volume needs no cluster auth). Plain cephadm
+      # shell (no --fsid/--config) since the fsid dir may not exist here yet.
+      ansible.builtin.command: cephadm shell -- ceph-volume lvm list --format json
+      register: _ceph_volume_list
+      changed_when: false
+      when: ceph_osd_devices | length > 0
 
-- name: Get mon dump
-  run_once: true
-  ansible.builtin.command: |
-    cephadm shell
-      --fsid "{{ ceph_osd_fsid }}"
-      --config "/var/lib/ceph/{{ ceph_osd_fsid }}/mon.{{ hostvars[_cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
-      -- ceph mon dump --format json
-  register: _ceph_mon_dump
-  changed_when: false
-  delegate_to: "{{ _cephadm_host_admin_host }}"
+    - name: Deploy OSDs on the explicitly listed devices
+      # No native module for `ceph orch daemon add osd`. Delegated to the admin
+      # host; guarded against devices already backing an OSD. Devices must be
+      # canonical /dev names or by-id (no ':' — by-path breaks the host:device
+      # parser); see the role README.
+      ansible.builtin.command: >-
+        cephadm shell --fsid {{ ceph_fsid }} --config {{ _ceph_admin_config }}
+        -- ceph orch daemon add osd {{ inventory_hostname_short }}:{{ item }}
+      loop: "{{ ceph_osd_devices }}"
+      loop_control:
+        loop_var: item
+      when:
+        - ceph_osd_devices | length > 0
+        - item not in _ceph_volume_list.stdout
+      delegate_to: "{{ ceph_osd_admin_host }}"
+      changed_when: true
 
-- name: Mark require osd release
-  run_once: true
-  ansible.builtin.command: |
-    cephadm shell
-      --fsid "{{ ceph_osd_fsid }}"
-      --config "/var/lib/ceph/{{ ceph_osd_fsid }}/mon.{{ hostvars[_cephadm_host_admin_host]['inventory_hostname_short'] }}/config"
-      -- ceph osd require-osd-release "{{ (_ceph_mon_dump.stdout | from_json)['min_mon_release_name'] }}"
-  changed_when: false
-  delegate_to: "{{ _cephadm_host_admin_host }}"
+    - name: Wait for explicitly requested OSD daemons to be running on this host
+      ansible.builtin.command: >-
+        cephadm shell
+        --fsid {{ ceph_fsid }}
+        --config {{ _ceph_admin_config }}
+        -- ceph orch ps
+        --daemon_type osd
+        --hostname {{ inventory_hostname_short }}
+        --format json
+      register: _osd_ps
+      until: >-
+        (_osd_ps.stdout
+        | from_json
+        | selectattr('status_desc', 'equalto', 'running')
+        | list
+        | length)
+        >= (ceph_osd_devices | length)
+      retries: "{{ ceph_osd_check_retry }}"
+      delay: 5
+      changed_when: false
+      delegate_to: "{{ ceph_osd_admin_host }}"
+      when: ceph_osd_devices | length > 0
 
-- name: Wait for all OSD to be running
-  ansible.builtin.include_tasks: check-osds.yml
-  when:
-    - inventory_hostname == groups[ceph_osd_osds_group] | last
+    - name: Wait for OSD drive-group services to deploy at least one daemon
+      ansible.builtin.command: >-
+        cephadm shell
+        --fsid {{ ceph_fsid }}
+        --config {{ _ceph_admin_config }}
+        -- ceph orch ps
+        --daemon_type osd
+        --format json
+      register: _osd_spec_ps
+      until: >-
+        (_osd_spec_ps.stdout
+        | from_json
+        | selectattr('status_desc', 'equalto', 'running')
+        | list
+        | length) > 0
+      retries: "{{ ceph_osd_check_retry }}"
+      delay: 5
+      changed_when: false
+      run_once: true
+      delegate_to: "{{ ceph_osd_admin_host }}"
+      when: ceph_osd_spec | length > 0

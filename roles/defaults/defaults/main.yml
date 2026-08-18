@@ -1,0 +1,244 @@
+# Copyright (c) 2026 VEXXHOST, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+# Single configuration surface for the whole collection. Every tunable/public
+# variable lives here; roles pull them in by meta-depending on this `defaults`
+# role (directly, or transitively via the base `cephadm` role).
+#
+# Naming convention:
+#   ceph_*          -> everything in this file: cluster-wide settings plus the
+#                      per-daemon groups ceph_mon_*, ceph_mgr_*, ceph_osd_*, ceph_rgw_*
+#   cephadm_*       -> internal to the cephadm tooling role (binary install)
+#   cephadm_host_*  -> parameters of the reusable cephadm_host role
+#
+# Detailed docs + examples for the bigger groups live in the dedicated role
+# READMEs:
+#   OSDs (ceph_osd_*)        -> roles/osd/README.md
+#   Day-2 config plane       -> roles/configure/README.md
+#   RADOS Gateway (ceph_rgw_*) -> roles/rgw/README.md
+
+# ===========================================================================
+# Cluster basics
+# ===========================================================================
+
+# Release line + container image (this collection targets squid 19.x / tentacle 20.x).
+ceph_version: 20.2.3
+ceph_image: "quay.io/ceph/ceph:v{{ ceph_version }}"
+
+# Stable cluster FSID (uuidgen). Central to idempotency and bootstrap detection.
+ceph_fsid: "{{ undef(hint='ceph_fsid: you must specify a stable cluster FSID (uuidgen)') }}"
+
+# Networks (CIDR). public picks each host's IP; cluster is the OSD replication
+# network. The host fabric is out of scope — each host must have exactly one IP
+# in each CIDR before the roles run (a NIC/bond IP for flat L2, or a loopback /32
+# advertised via BGP for a routed L3 fabric).
+ceph_public_network: 0.0.0.0/0
+ceph_cluster_network: "{{ ceph_public_network }}"
+
+# Inventory groups holding each daemon type. Host labels are derived from
+# membership in these groups (see the cephadm_host role).
+ceph_mon_group: controllers
+ceph_mgr_group: controllers
+ceph_osd_group: cephs
+ceph_rgw_group: controllers
+
+# Local user cephadm logs in as on the hosts.
+ceph_ssh_user: cephadm
+
+# Cluster SSH identity — dual mode:
+#   * Provide BOTH keys to inject a caller-supplied identity (bootstrap uses
+#     --skip-ssh, then `ceph cephadm set-pub-key/set-priv-key`).
+#   * Leave empty to let cephadm generate its own key (fetched/distributed by
+#     the cephadm_host role) — convenient for CI/greenfield.
+ceph_ssh_public_key: ""
+ceph_ssh_private_key: ""
+
+# Container registry (leave username empty to skip login; used for air-gapped mirrors).
+ceph_registry_url: ""
+ceph_registry_username: ""
+ceph_registry_password: ""
+
+# Optional per-host CRUSH topology (root/rack/row); set as host/group vars,
+# written into the host spec's location: field.
+ceph_host_location: {}
+
+# ===========================================================================
+# Bootstrap (mon role, first converge)
+# ===========================================================================
+
+# Ceph's built-in monitoring/dashboard/firewalld are off by default; consumed by
+# the mon role's bootstrap via the cephadm_bootstrap module.
+ceph_bootstrap_enable_dashboard: false
+ceph_bootstrap_enable_firewalld: false
+# Accept short/FQDN hostname mismatches; enable single-host CRUSH/pool defaults (AIO).
+ceph_bootstrap_allow_fqdn_hostname: false
+ceph_bootstrap_single_host_defaults: false
+
+# ===========================================================================
+# Monitors (mon role)
+# ===========================================================================
+
+# Extra ceph.conf entries applied at bootstrap: list of {section, option, value}.
+ceph_mon_conf_overrides: []
+# How long to wait for the mon daemon to come up (x3s).
+ceph_mon_check_retry: 120
+# Where the cluster SSH identity is written on the bootstrap host (cephadm reads
+# it via --ssh-public-key/--ssh-private-key). Provided keys are written here;
+# otherwise a keypair is generated in place.
+ceph_mon_ssh_private_key_path: /etc/ceph/cephadm.id
+ceph_mon_ssh_public_key_path: /etc/ceph/cephadm.id.pub
+
+# ===========================================================================
+# Managers (mgr role)
+# ===========================================================================
+
+# How long to wait for the mgr daemon to come up (x3s).
+ceph_mgr_check_retry: 120
+# ceph-mgr modules to enable/disable: list of {name, state} (state: enable|disable).
+ceph_mgr_modules:
+  - name: diskprediction_local
+  - name: dashboard
+  - name: iostat
+  - name: prometheus
+
+# ===========================================================================
+# OSDs (osd role) — use ceph_osd_spec (drive groups, recommended) and/or
+# ceph_osd_devices (explicit per-host list). See roles/osd/README.md.
+# ===========================================================================
+
+# List of cephadm OSD drive-group service specs (service_type added by the role).
+ceph_osd_spec: []
+# Explicit per-host device list (set in host_vars). Canonical /dev or by-id
+# names only (no by-path — colons break the host:device parser).
+ceph_osd_devices: []
+# How long to wait for OSD daemons to come up (x5s).
+ceph_osd_check_retry: 120
+
+# ===========================================================================
+# Day-2 declarative config plane (configure role). Each list defaults to empty
+# (no-op); set them in group_vars. See roles/configure/README.md for item shapes.
+# ===========================================================================
+
+# `ceph config set <who> <option> <value>`. Grouped by `who` (the service /
+# entity, as shown in `ceph orch ls`) so it's named once; each holds a
+# `settings:` list of {name, value, sensitive?}. e.g.:
+#   ceph_config:
+#     mon:
+#       settings:
+#         - { name: mon_allow_pool_delete, value: true }
+#     client.rgw:
+#       settings:
+#         - { name: rgw_sts_key, value: "...", sensitive: true }
+ceph_config: {}
+
+# Erasure-code profiles — list of {name, k, m, ...}
+ceph_ec_profiles: []
+
+# CRUSH rules — list of {name, rule_type, ...}
+ceph_crush_rules: []
+
+# RADOS pools — list of {name, type, ...}
+ceph_pools: []
+
+# CephX auth entities — list of {name, caps, secret?}
+ceph_keys: []
+
+# Ceph Dashboard users — list of {name, password, roles}
+ceph_dashboard_users: []
+
+# Ceph Dashboard TLS certificate (only when the dashboard mgr module is enabled).
+# Provide BOTH cert and key (PEM) to install your own; leave empty to generate a
+# self-signed cert. Changing either re-installs it and reloads the dashboard.
+# NB: the listen ports are Ceph config keys — set them via ceph_config, e.g.
+#   ceph_config: { mgr: { settings: [{name: mgr/dashboard/ssl_server_port, value: 8443}]} }
+ceph_dashboard_cert: ""
+ceph_dashboard_key: ""
+
+# ===========================================================================
+# RADOS Gateway (rgw role). Set ceph_rgw_enabled: false to have the collection
+# NOT manage RGW at all. We do NOT deploy cephadm ingress (haproxy/keepalived) —
+# front RGW with your own load balancer. TLS is optional (terminate at the LB);
+# for backend TLS put ssl: true + rgw_frontend_ssl_certificate (or generate_cert)
+# INSIDE item.spec, the cephadm-native way. See roles/rgw/README.md.
+# ===========================================================================
+ceph_rgw_enabled: false
+ceph_rgw_realms: []          # [{name, default?, url?, access_key?, secret_key?}]
+ceph_rgw_zonegroups: []      # [{name, realm, master?, default?, endpoints?}]
+ceph_rgw_zones: []           # [{name, realm, zonegroup, master?, default?, endpoints?, access_key?, secret_key?}]
+ceph_rgw_services: []        # [{id, count_per_host?, networks?, spec?}] spec: passed to cephadm verbatim
+
+# Some RGW spec changes only take effect on a `ceph orch redeploy` — cephadm does
+# NOT reconcile them live (SSL/cert, the frontend listener, ...). After applying
+# the specs, the role redeploys a service ONLY when one of the keys in
+# ceph_rgw_redeploy_spec_keys changed, so routine converges cause no RGW restart.
+# Set false to never auto-redeploy.
+ceph_rgw_redeploy_on_change: true
+# Spec keys whose change triggers a redeploy. Not SSL-specific — extend freely
+# with any field that needs a daemon restart. Future-proof: the latest/dev SSL
+# fields are already listed; keys not present in your release are harmless.
+ceph_rgw_redeploy_spec_keys:
+  # SSL / certificate (only ever land on redeploy)
+  - ssl
+  - rgw_frontend_ssl_certificate
+  - generate_cert
+  - ssl_cert            # ceph > tentacle (latest/dev)
+  - ssl_key             # ceph > tentacle (latest/dev)
+  - certificate_source  # ceph > tentacle (latest/dev)
+  # frontend listener
+  - rgw_frontend_type
+# Remove the default zone/zonegroup and default.rgw.* pools created by a stock
+# RGW. Intended only for fresh installations during RGW bootstrap, before any
+# user data exists. Destructive — temporarily enables mon_allow_pool_delete.
+ceph_rgw_remove_default_resources: false
+
+# ===========================================================================
+# Monitoring stack (monitoring role). Deploys the cephadm-managed observability
+# services (bootstrap uses --skip-monitoring-stack, so they're added here). The
+# mgr `prometheus` module (see ceph_mgr_modules) only exposes a metrics endpoint
+# — the prometheus SERVICE below is what scrapes it. Set ceph_monitoring_enabled:
+# false to skip (e.g. when feeding an external Prometheus/Grafana).
+# See roles/monitoring/README.md.
+# ===========================================================================
+ceph_monitoring_enabled: true
+# Each item is a full cephadm service spec; drop/reorder/extend as needed.
+# `networks` binds each daemon to the public-network interface. Note this alone
+# does NOT decide the address cephadm advertises for the Grafana->Prometheus
+# datasource / exporter scrape targets: cephadm uses the daemon `ip` if set, else
+# the reverse-DNS name of the host's `addr` (`ceph orch host ls`). So a working
+# stack needs the host addr to be an IP with sane forward/reverse resolution —
+# a stale PTR is what makes Grafana show an unresolvable hostname (502).
+# See roles/monitoring/README.md.
+ceph_monitoring_services:
+  # ceph-exporter uses the base ServiceSpec (no `networks` field), so it can't
+  # carry a `networks` key at all.
+  - { service_type: ceph-exporter, placement: { host_pattern: "*" } }
+  # - { service_type: prometheus, placement: { count: 1, label: mon }, networks: ["{{ ceph_public_network }}"] }
+  # - { service_type: alertmanager, placement: { count: 1, label: mon }, networks: ["{{ ceph_public_network }}"] }
+  # - { service_type: grafana, placement: { count: 1, label: mon }, networks: ["{{ ceph_public_network }}"] }
+  # - { service_type: node-exporter, placement: { host_pattern: "*" }, networks: ["{{ ceph_public_network }}"] }
+# Optional air-gap image pins (empty -> cephadm defaults). Keys map to
+# mgr/cephadm/container_image_<key>: prometheus, grafana, alertmanager, node_exporter.
+ceph_monitoring_images: {}
+
+# ===========================================================================
+# cephadm-shell environment (applied by the roles to every cephadm call)
+# ===========================================================================
+#   CEPHADM_IMAGE  - pins the image for the cephadm binary and all shell calls.
+#   CEPHADM_FSID   - read by the vendored modules' shell builders to add
+#                    `cephadm shell --fsid`, skipping cluster discovery.
+# Component roles additionally merge in CEPHADM_CONFIG (the admin mon's config
+# path) to add `--config`, which together make each shell call ~5x faster.
+ceph_environment:
+  CEPHADM_IMAGE: "{{ ceph_image }}"
+  CEPHADM_FSID: "{{ ceph_fsid }}"

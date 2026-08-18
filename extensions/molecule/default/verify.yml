@@ -1,97 +1,189 @@
-# Copyright (c) 2025 VEXXHOST, Inc.
+# Copyright (c) 2026 VEXXHOST, Inc.
 # SPDX-License-Identifier: Apache-2.0
 
-- name: Verify
-  hosts: controllers
+- name: Verify the deployed Ceph cluster
+  hosts: controllers[0]
   become: true
+  # Mirror the roles' ceph_environment: CEPHADM_FSID for the fast
+  # `cephadm shell --fsid` path, and CEPHADM_IMAGE so the data-plane modules run
+  # containerized (is_containerized() keys off CEPHADM_IMAGE — without it, modules
+  # like ceph_key fall back to native binaries such as ceph-authtool, which aren't
+  # installed on a cephadm host). ceph_version/ceph_image come from the defaults
+  # role, which a standalone verify play doesn't apply, hence the fallback.
+  environment:
+    CEPHADM_FSID: "{{ ceph_fsid }}"
+    CEPHADM_IMAGE: "{{ ceph_image | default('quay.io/ceph/ceph:v' ~ (ceph_version | default('20.2.3'))) }}"
+  vars:
+    ceph_mon_group: controllers
   tasks:
-    - name: List locally deployed Ceph daemons
-      ansible.builtin.command: cephadm ls
-      register: _cephadm_daemons
+    - name: Get cluster health
+      ansible.builtin.command: "cephadm shell --fsid {{ ceph_fsid }} -- ceph health detail"
+      register: _ceph_health
       changed_when: false
+      run_once: true
 
-    - name: Collect deployed Ceph container images
-      ansible.builtin.set_fact:
-        _ceph_container_images: >-
-          {{
-            _cephadm_daemons.stdout
-            | from_json
-            | selectattr('name', 'match', '^mon[.]')
-            | selectattr('container_image_name', 'defined')
-            | map(attribute='container_image_name')
-            | unique
-            | list
-          }}
+    - name: Assert the cluster is HEALTH_OK
+      ansible.builtin.assert:
+        that: _ceph_health.stdout_lines[0] == 'HEALTH_OK'
+        fail_msg: "Cluster is not healthy:\n{{ _ceph_health.stdout }}"
+      run_once: true
 
-    - name: Assert that a deployed Ceph container image was found
+    - name: Get monitor quorum
+      ansible.builtin.command: "cephadm shell --fsid {{ ceph_fsid }} -- ceph quorum_status --format json"
+      register: _ceph_quorum
+      changed_when: false
+      run_once: true
+
+    - name: Assert every monitor is in quorum
+      ansible.builtin.assert:
+        that: (_ceph_quorum.stdout | from_json).quorum_names | length == groups[ceph_mon_group] | length
+        fail_msg: >-
+          Quorum {{ (_ceph_quorum.stdout | from_json).quorum_names }}
+          != expected mons {{ groups[ceph_mon_group] }}
+      run_once: true
+
+    - name: Get manager status
+      ansible.builtin.command: "cephadm shell --fsid {{ ceph_fsid }} -- ceph mgr stat --format json"
+      register: _ceph_mgr
+      changed_when: false
+      run_once: true
+
+    - name: Assert a manager is active
+      ansible.builtin.assert:
+        that: (_ceph_mgr.stdout | from_json).available | bool
+        fail_msg: "No active mgr: {{ _ceph_mgr.stdout }}"
+      run_once: true
+
+    - name: Get OSD stat
+      ansible.builtin.command: "cephadm shell --fsid {{ ceph_fsid }} -- ceph osd stat --format json"
+      register: _ceph_osd_stat
+      changed_when: false
+      run_once: true
+
+    - name: Assert all OSDs are up and in
+      vars:
+        _osd: "{{ _ceph_osd_stat.stdout | from_json }}"
       ansible.builtin.assert:
         that:
-          - _ceph_container_images | length > 0
-        fail_msg: No deployed monitor container image was found in cephadm metadata
+          - _osd.num_osds | int > 0
+          - _osd.num_up_osds | int == _osd.num_osds | int
+          - _osd.num_in_osds | int == _osd.num_osds | int
+        fail_msg: "OSDs not all up/in: {{ _osd }}"
+      run_once: true
 
-    - name: Verify using the deployed Ceph container image
-      environment:
-        CEPHADM_IMAGE: "{{ _ceph_container_images | first }}"
-        CEPH_CONTAINER_IMAGE: "{{ _ceph_container_images | first }}"
-        CEPH_CONTAINER_BINARY: docker
+    - name: List orchestrator services
+      ansible.builtin.command: "cephadm shell --fsid {{ ceph_fsid }} -- ceph orch ls --format json"
+      register: _orch_ls
+      changed_when: false
+      run_once: true
+
+    - name: Assert every orchestrator service has all its daemons running
+      ansible.builtin.assert:
+        that:
+          - (item.status.running | default(0)) > 0
+          - (item.status.running | default(0)) == (item.status.size | default(0))
+        fail_msg: >-
+          Service {{ item.service_name | default(item.service_type) }} running
+          {{ item.status.running | default(0) }}/{{ item.status.size | default(0) }}
+      loop: "{{ _orch_ls.stdout | from_json }}"
+      loop_control:
+        label: "{{ item.service_name | default(item.service_type) }}"
+      run_once: true
+
+    - name: List pools
+      ansible.builtin.command: "cephadm shell --fsid {{ ceph_fsid }} -- ceph osd pool ls --format json"
+      register: _pool_ls
+      changed_when: false
+      run_once: true
+
+    - name: Assert every declared pool exists
+      ansible.builtin.assert:
+        that: item.name in (_pool_ls.stdout | from_json)
+        fail_msg: "Declared pool {{ item.name }} is missing"
+      loop: "{{ ceph_pools | default([]) }}"
+      loop_control:
+        label: "{{ item.name }}"
+      run_once: true
+
+    # ---- RGW (only when the collection manages it) ------------------------
+    - name: Verify RADOS Gateway
+      when:
+        - ceph_rgw_enabled | default(true) | bool
+        - ceph_rgw_zones | default([]) | length > 0
+      run_once: true
       block:
-        - name: Get cluster health status
-          ansible.builtin.command: cephadm shell -- ceph health
-          register: _ceph_health
+        # Regression guard for the multisite "period does not have a master
+        # zone" bug: a committed zonegroup must carry a master_zone.
+        - name: Get the RGW zonegroup
+          ansible.builtin.command: >-
+            cephadm shell --fsid {{ ceph_fsid }}
+            -- radosgw-admin zonegroup get --rgw-zonegroup {{ (ceph_rgw_zonegroups | first).name }}
+          register: _rgw_zonegroup
           changed_when: false
 
-        - name: Print cluster health status
-          ansible.builtin.debug:
-            var: _ceph_health
-
-        - name: Assert that the cluster status is healthy
+        - name: Assert the zonegroup has a master zone
+          vars:
+            _zg: "{{ _rgw_zonegroup.stdout | from_json }}"
           ansible.builtin.assert:
             that:
-              - _ceph_health.stdout == 'HEALTH_OK'
+              - _zg.name == (ceph_rgw_zonegroups | first).name
+              - _zg.master_zone | length > 0
+              - _zg.zones | selectattr('name', 'equalto', (ceph_rgw_zones | first).name) | list | length == 1
+            fail_msg: "Zonegroup not properly configured: {{ _zg }}"
 
-        - name: Create a test Ceph pool
-          vexxhost.ceph.pool:
-            name: test-pool
-            state: present
-            size: "1"
-            min_size: "1"
-            application: rbd
-            pg_autoscale_mode: "on"
+        # End-to-end liveness: an anonymous S3 GET on the zone endpoint returns
+        # the bucket-listing document, proving the daemon + realm/zone serve traffic.
+        - name: Probe the RGW S3 endpoint (anonymous)
+          ansible.builtin.uri:
+            url: "{{ (ceph_rgw_zones | first).endpoints | first }}"
+            return_content: true
+            status_code: 200
+            validate_certs: false
+          register: _rgw_probe
 
-        - name: Create a test Ceph key
-          vexxhost.ceph.key:
-            name: client.test
-            state: present
-            caps:
-              mon: "allow r"
-              osd: "allow rwx pool=test-pool"
-
-        - name: Retrieve info for the test Ceph key
-          vexxhost.ceph.key_info:
-            name: client.test
-            state: info
-          register: _key_info
-
-        - name: Assert that key_info returns the correct key
+        - name: Assert the RGW endpoint returns an S3 listing
           ansible.builtin.assert:
-            that:
-              - _key_info.rc == 0
-              - (_key_info.stdout | from_json)[0].entity == 'client.test'
-              - (_key_info.stdout | from_json)[0].key is defined
-              - (_key_info.stdout | from_json)[0].caps.mon == 'allow r'
-              - (_key_info.stdout | from_json)[0].caps.osd == 'allow rwx pool=test-pool'
+            that: "'ListAllMyBucketsResult' in _rgw_probe.content"
+            fail_msg: "Unexpected RGW response: {{ _rgw_probe.content | default('') }}"
 
-        - name: Retrieve info for the test Ceph key using the legacy key module
-          vexxhost.ceph.key:
-            name: client.test
-            state: info
-          register: _legacy_key_info
+    - name: Create a test pool
+      vexxhost.ceph.pool:
+        name: test-pool
+        state: present
+        rule_name: replicated_rule
+        pool_type: replicated
+        application: rbd
+        pg_autoscale_mode: "on"
+      run_once: true
 
-        - name: Assert that the legacy key module info state returns the correct key
-          ansible.builtin.assert:
-            that:
-              - _legacy_key_info.rc == 0
-              - (_legacy_key_info.stdout | from_json)[0].entity == 'client.test'
-              - (_legacy_key_info.stdout | from_json)[0].key is defined
-              - (_legacy_key_info.stdout | from_json)[0].caps.mon == 'allow r'
-              - (_legacy_key_info.stdout | from_json)[0].caps.osd == 'allow rwx pool=test-pool'
+    - name: Create a test CephX key
+      vexxhost.ceph.key:
+        name: client.test
+        state: present
+        caps:
+          mon: "allow r"
+          osd: "allow rwx pool=test-pool"
+      run_once: true
+
+    - name: Read the test key back
+      vexxhost.ceph.key_info:
+        name: client.test
+        state: info
+      register: _key_info
+      run_once: true
+
+    - name: Assert the key info is correct
+      ansible.builtin.assert:
+        that:
+          - _key_info.rc == 0
+          - (_key_info.stdout | from_json)[0].entity == 'client.test'
+          - (_key_info.stdout | from_json)[0].key is defined
+          - (_key_info.stdout | from_json)[0].caps.mon == 'allow r'
+          - (_key_info.stdout | from_json)[0].caps.osd == 'allow rwx pool=test-pool'
+      run_once: true
+
+    - name: Remove the test CephX key
+      vexxhost.ceph.key:
+        name: client.test
+        state: absent
+      run_once: true
