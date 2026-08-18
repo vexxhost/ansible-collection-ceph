@@ -78,16 +78,47 @@
       delegate_to: "{{ ceph_osd_admin_host }}"
       changed_when: true
 
-    - name: Wait for OSD daemons to be running
+    - name: Wait for explicitly requested OSD daemons to be running on this host
       ansible.builtin.command: >-
-        cephadm shell --fsid {{ ceph_fsid }} --config {{ _ceph_admin_config }}
-        -- ceph orch ps --daemon_type osd --format json
+        cephadm shell
+        --fsid {{ ceph_fsid }}
+        --config {{ _ceph_admin_config }}
+        -- ceph orch ps
+        --daemon_type osd
+        --hostname {{ inventory_hostname_short }}
+        --format json
       register: _osd_ps
       until: >-
-        (_osd_ps.stdout | from_json | selectattr('status_desc', 'equalto', 'running') | list | length) > 0
+        (_osd_ps.stdout
+        | from_json
+        | selectattr('status_desc', 'equalto', 'running')
+        | list
+        | length)
+        >= (ceph_osd_devices | length)
+      retries: "{{ ceph_osd_check_retry }}"
+      delay: 5
+      changed_when: false
+      delegate_to: "{{ ceph_osd_admin_host }}"
+      when: ceph_osd_devices | length > 0
+
+    - name: Wait for OSD drive-group services to deploy at least one daemon
+      ansible.builtin.command: >-
+        cephadm shell
+        --fsid {{ ceph_fsid }}
+        --config {{ _ceph_admin_config }}
+        -- ceph orch ps
+        --daemon_type osd
+        --format json
+      register: _osd_spec_ps
+      until: >-
+        (_osd_spec_ps.stdout
+        | from_json
+        | selectattr('status_desc', 'equalto', 'running')
+        | list
+        | length) > 0
       retries: "{{ ceph_osd_check_retry }}"
       delay: 5
       changed_when: false
       run_once: true
       delegate_to: "{{ ceph_osd_admin_host }}"
-      when: (ceph_osd_spec | length > 0) or (ceph_osd_devices | length > 0)
+      when: ceph_osd_spec | length > 0
