@@ -74,5 +74,6 @@
     label: "rgw.{{ item.id }}"
   when:
     - ceph_rgw_redeploy_on_change | bool
+    - ('rgw.' ~ item.id) in _rgw_current
     - _desired_keys != _current_keys
   delegate_to: "{{ ceph_rgw_admin_host }}"
