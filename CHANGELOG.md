@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.2.1](https://github.com/vexxhost/ansible-collection-ceph/compare/v4.2.0...v4.2.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **playbooks:** pin cephadm runtime image ([#124](https://github.com/vexxhost/ansible-collection-ceph/issues/124)) ([44a694a](https://github.com/vexxhost/ansible-collection-ceph/commit/44a694a80e3179c28d75180baa1a56426f987257))
+
 ## [4.2.0](https://github.com/vexxhost/ansible-collection-ceph/compare/v4.1.0...v4.2.0) (2026-08-06)
 
 
