@@ -21,7 +21,7 @@
 - name: Check upgrade version
   run_once: true
   ansible.builtin.set_fact:
-    check_upgrade: "{{ (cluster_version | regex_search('[0-9]+\\.[0-9]+\\.[0-9]+')) is version(ceph_version, '<') }}"
+    check_upgrade: "{{ (cluster_version | regex_search('[0-9]+\\.[0-9]+\\.[0-9]+')) is version(ceph_upgrade_version, '<') }}"
 
 - name: Run upgrade
   when:
@@ -30,7 +30,7 @@
   ansible.builtin.command: |
     cephadm shell
       --fsid "{{ ceph_mon_fsid }}"
-      -- ceph orch upgrade start --ceph-version "{{ ceph_version }}"
+      -- ceph orch upgrade start --ceph-version "{{ ceph_upgrade_version }}"
   register: result
   changed_when: "'Initiating upgrade' in result.stdout"
 
@@ -40,7 +40,7 @@
   run_once: true
   ansible.builtin.command: cephadm shell --fsid "{{ ceph_mon_fsid }}" -- ceph version
   register: _cluster_version
-  until: "(_cluster_version | regex_search('[0-9]+\\.[0-9]+\\.[0-9]+'))  is version(ceph_version, '==')"
+  until: "(_cluster_version | regex_search('[0-9]+\\.[0-9]+\\.[0-9]+'))  is version(ceph_upgrade_version, '==')"
   retries: "{{ ceph_upgrade_check_retry | default(120) }}"
   delay: 10
   changed_when: false

@@ -14,3 +14,7 @@
 
 # Filesystem ID
 ceph_mon_fsid: "{{ ceph_fsid }}"
+
+# Target version.  Keep the role usable when a scenario does not define the
+# collection-wide ceph_version variable.
+ceph_upgrade_version: "{{ ceph_version | default('20.2.3') }}"
