@@ -23,6 +23,7 @@
       tags:
         - ceph-mgr
   environment:
+    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.3'))) }}"
     CEPH_CONTAINER_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.3'))) }}"
     CEPH_CONTAINER_BINARY: docker
 
@@ -34,6 +35,7 @@
       tags:
         - ceph-osd
   environment:
+    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.3'))) }}"
     CEPH_CONTAINER_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.3'))) }}"
     CEPH_CONTAINER_BINARY: docker
 
@@ -45,5 +47,6 @@
       tags:
         - ceph-exporter
   environment:
+    CEPHADM_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.3'))) }}"
     CEPH_CONTAINER_IMAGE: "{{ cephadm_image | default('quay.io/ceph/ceph:v' + (ceph_version | default('20.2.3'))) }}"
     CEPH_CONTAINER_BINARY: docker
