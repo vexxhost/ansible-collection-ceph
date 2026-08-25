@@ -59,11 +59,14 @@
       ansible.builtin.command: losetup -a
       changed_when: false
       register: _loopback_devices
+      when: not (ceph_skip_loopback_check | default(false) | bool)
 
     - name: Fail if there is any existing loopback devices
       ansible.builtin.fail:
         msg: There are existing loopback devices, please ensure they are removed
-      when: _loopback_devices.stdout != ""
+      when:
+        - not (ceph_skip_loopback_check | default(false) | bool)
+        - _loopback_devices.stdout | default("") != ""
 
     - name: Create devices for Ceph
       ansible.builtin.command: truncate -s 1024G /opt/{{ inventory_hostname_short }}-{{ item }}.img
