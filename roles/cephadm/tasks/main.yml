@@ -38,6 +38,11 @@
     dest: /usr/bin/cephadm
     mode: '0755'
     force: true
+    timeout: 60
+  register: cephadm_download
+  retries: 3
+  delay: 5
+  until: cephadm_download is succeeded
   environment: "{{ _cephadm_environment }}"
 
 - name: Remove cephadm from old path
